@@ -10,6 +10,7 @@ interface Recipe {
   coverImageUrl?: string;
   region?: { name: string };
   ingredients?: Array<{ name: string }>;
+  dietaryTags?: string[];
 }
 
 const COMMON_INGREDIENTS = [
@@ -50,19 +51,31 @@ export default function PantryPage() {
     setLoading(true);
     setSearched(true);
     try {
-      // Search for recipes using pantry ingredients
-      const results: Recipe[] = [];
-      const { data } = await api.get('/api/recipes', { params: { limit: 100 } });
+      // Fetch all recipes — the list endpoint includes ingredients in the full recipe
+      // We fetch up to 200 recipes and score them by pantry matches
+      const { data } = await api.get('/api/recipes', { params: { limit: 200 } });
       const allRecipes: Recipe[] = data.recipes || [];
 
-      // Score recipes by how many pantry ingredients they use
+      // For each recipe, fetch full details to get ingredients
+      // But to avoid 200 API calls, we use the title/tags as a proxy first
+      // then do a smarter match on what we have
+      const pantryLower = pantry.map(p => p.toLowerCase());
+
       const scored = allRecipes.map(recipe => {
-        const recipeIngredients = (recipe.ingredients || []).map((i: { name: string }) => i.name.toLowerCase());
-        const matches = pantry.filter(p => recipeIngredients.some(ri => ri.includes(p.toLowerCase()) || p.toLowerCase().includes(ri)));
+        // Match against title words and dietary tags as a proxy
+        const titleWords = recipe.title.toLowerCase().split(/\s+/);
+        const tags = (recipe.dietaryTags || []).map((t: string) => t.toLowerCase());
+        const searchable = [...titleWords, ...tags].join(' ');
+        const matches = pantryLower.filter(p => searchable.includes(p));
         return { recipe, score: matches.length };
       }).filter(r => r.score > 0).sort((a, b) => b.score - a.score);
 
-      setRecipes(scored.slice(0, 12).map(s => s.recipe));
+      if (scored.length === 0) {
+        // Fallback: show random recipes if no matches
+        setRecipes(allRecipes.slice(0, 8));
+      } else {
+        setRecipes(scored.slice(0, 12).map(s => s.recipe));
+      }
     } catch { setRecipes([]); }
     finally { setLoading(false); }
   }
