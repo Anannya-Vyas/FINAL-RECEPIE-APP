@@ -105,10 +105,10 @@ function sanitizeSteps(steps: unknown[]): Record<string, unknown>[] {
 }
 
 // ─── POST /api/recipes ───────────────────────────────────────────────────────
-// Task 5.1 — create recipe (Requirements: 4.1, 4.2, 4.3, 15.1, 19.4)
+// Create recipe — no auth required, anyone can publish
 
-router.post('/', verifyToken, async (req: Request, res: Response) => {
-  const userId = req.user!.userId;
+router.post('/', async (req: Request, res: Response) => {
+  const userId = req.user?.userId || `anon_${Date.now()}`;
   const {
     title,
     region_id,

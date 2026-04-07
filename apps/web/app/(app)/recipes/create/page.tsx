@@ -107,133 +107,81 @@ export default function RecipeCreatePage() {
   if (success) {
     return (
       <div className="max-w-lg mx-auto text-center py-20">
-        <div className="text-5xl mb-4">🎉</div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Recipe submitted!</h2>
-        <p className="text-gray-500 mb-6">
-          Your recipe is under review and will be published once approved.
-        </p>
-        <button
-          onClick={() => router.push('/')}
-          className="px-6 py-2 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 transition-colors"
-        >
-          Back to home
-        </button>
+        <div className="text-6xl mb-6">🎉</div>
+        <h2 className="font-headline text-2xl font-extrabold text-on-surface tracking-tight">Recipe published!</h2>
+        <p className="text-on-surface-variant mt-3 mb-8">Your recipe is now live and visible to everyone.</p>
+        <div className="flex gap-3 justify-center">
+          <button onClick={() => router.push('/discovery')} className="px-6 py-3 bg-gradient-to-br from-primary to-primary-container text-on-primary rounded-full font-label font-bold text-sm uppercase tracking-widest">
+            Browse Recipes
+          </button>
+          <button onClick={() => { setSuccess(false); setTitle(''); setRegion(''); setCoverImageUrl(''); setIngredients([{ name: '', quantity: '', unit: '' }, { name: '', quantity: '', unit: '' }, { name: '', quantity: '', unit: '' }]); setSteps([{ description: '' }, { description: '' }]); }} className="px-6 py-3 bg-surface-container text-on-surface rounded-full font-label font-bold text-sm uppercase tracking-widest">
+            Add Another
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Recipe Creator Studio</h1>
+      <div className="mb-8">
+        <span className="font-label text-primary font-bold tracking-[0.2em] text-xs uppercase">Share Your Heritage</span>
+        <h1 className="font-headline text-4xl font-extrabold tracking-tight text-on-surface mt-1">Recipe Creator Studio</h1>
+        <p className="text-on-surface-variant text-sm mt-1">Your recipe publishes immediately — no review needed.</p>
+      </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-          {error}
-        </div>
+        <div className="mb-6 p-4 bg-error-container text-on-error-container rounded-xl text-sm font-medium">{error}</div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic info */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
-          <h2 className="font-semibold text-gray-800">Basic Info</h2>
+        <div className="bg-surface-container-lowest rounded-2xl border border-outline/10 p-6 space-y-4 shadow-sm">
+          <h2 className="font-headline font-bold text-on-surface">Basic Info</h2>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
-            <input
-              required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-              placeholder="e.g. Grandma's Biryani"
-            />
+            <label className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-2">Recipe Title *</label>
+            <input required value={title} onChange={e => setTitle(e.target.value)} className="w-full bg-surface-container-low border border-outline/20 rounded-xl px-4 py-3 text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="e.g. Grandma's Biryani" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Region / Country *</label>
-            <input
-              required
-              value={region}
-              onChange={(e) => setRegion(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-              placeholder="e.g. India, Hyderabad"
-            />
+            <label className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-2">Region / Country *</label>
+            <input required value={region} onChange={e => setRegion(e.target.value)} className="w-full bg-surface-container-low border border-outline/20 rounded-xl px-4 py-3 text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="e.g. India, Hyderabad, Kerala" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Cover Image URL *</label>
-            <input
-              required
-              type="url"
-              value={coverImageUrl}
-              onChange={(e) => setCoverImageUrl(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-              placeholder="https://..."
-            />
+            <label className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-2">Cover Image URL *</label>
+            <input required type="url" value={coverImageUrl} onChange={e => setCoverImageUrl(e.target.value)} className="w-full bg-surface-container-low border border-outline/20 rounded-xl px-4 py-3 text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="https://..." />
+            {coverImageUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={coverImageUrl} alt="preview" className="mt-2 w-full h-40 object-cover rounded-xl" onError={e => (e.currentTarget.style.display = 'none')} />
+            )}
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Prep (min)</label>
-              <input
-                type="number"
-                min="0"
-                value={prepTimeMins}
-                onChange={(e) => setPrepTimeMins(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-              />
+              <label className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-2">Prep (min)</label>
+              <input type="number" min="0" value={prepTimeMins} onChange={e => setPrepTimeMins(e.target.value)} className="w-full bg-surface-container-low border border-outline/20 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Cook (min)</label>
-              <input
-                type="number"
-                min="0"
-                value={cookTimeMins}
-                onChange={(e) => setCookTimeMins(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-              />
+              <label className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-2">Cook (min)</label>
+              <input type="number" min="0" value={cookTimeMins} onChange={e => setCookTimeMins(e.target.value)} className="w-full bg-surface-container-low border border-outline/20 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Servings</label>
-              <input
-                type="number"
-                min="1"
-                value={servingSize}
-                onChange={(e) => setServingSize(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-              />
+              <label className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block mb-2">Servings</label>
+              <input type="number" min="1" value={servingSize} onChange={e => setServingSize(e.target.value)} className="w-full bg-surface-container-low border border-outline/20 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
             </div>
           </div>
-          {/* Family Recipe toggle */}
-          <label className="flex items-center gap-3 cursor-pointer">
-            <div
-              onClick={() => setIsFamilyRecipe((v) => !v)}
-              className={`w-10 h-6 rounded-full transition-colors ${
-                isFamilyRecipe ? 'bg-amber-500' : 'bg-gray-300'
-              } relative`}
-            >
-              <div
-                className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                  isFamilyRecipe ? 'translate-x-5' : 'translate-x-1'
-                }`}
-              />
+          <label className="flex items-center gap-3 cursor-pointer" onClick={() => setIsFamilyRecipe(v => !v)}>
+            <div className={`w-12 h-6 rounded-full transition-colors relative ${isFamilyRecipe ? 'bg-primary' : 'bg-surface-container-high'}`}>
+              <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${isFamilyRecipe ? 'translate-x-7' : 'translate-x-1'}`} />
             </div>
-            <span className="text-sm font-medium text-gray-700">
-              👵 Family / Grandmother Recipe
-            </span>
+            <span className="text-sm font-medium text-on-surface">👵 Family / Grandmother Recipe</span>
           </label>
         </div>
 
         {/* Dietary tags */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <h2 className="font-semibold text-gray-800 mb-3">Dietary Tags</h2>
+        <div className="bg-surface-container-lowest rounded-2xl border border-outline/10 p-6 shadow-sm">
+          <h2 className="font-headline font-bold text-on-surface mb-4">Dietary Tags</h2>
           <div className="flex flex-wrap gap-2">
-            {DIETARY_TAGS.map((tag) => (
-              <button
-                key={tag}
-                type="button"
-                onClick={() => toggleTag(tag)}
-                className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
-                  dietaryTags.includes(tag)
-                    ? 'bg-green-500 text-white border-green-500'
-                    : 'bg-white text-gray-700 border-gray-300 hover:border-green-400'
-                }`}
-              >
+            {DIETARY_TAGS.map(tag => (
+              <button key={tag} type="button" onClick={() => toggleTag(tag)} className={`px-4 py-2 rounded-full text-sm font-label font-bold border transition-colors ${dietaryTags.includes(tag) ? 'bg-secondary text-on-secondary border-secondary' : 'bg-surface-container border-outline/20 text-on-surface-variant hover:border-primary/40'}`}>
                 {tag}
               </button>
             ))}
@@ -241,91 +189,42 @@ export default function RecipeCreatePage() {
         </div>
 
         {/* Ingredients */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <h2 className="font-semibold text-gray-800 mb-3">Ingredients (min. 3) *</h2>
+        <div className="bg-surface-container-lowest rounded-2xl border border-outline/10 p-6 shadow-sm">
+          <h2 className="font-headline font-bold text-on-surface mb-4">Ingredients (min. 3) *</h2>
           <div className="space-y-2">
             {ingredients.map((ing, i) => (
               <div key={i} className="flex gap-2 items-center">
-                <input
-                  value={ing.quantity}
-                  onChange={(e) => updateIngredient(i, 'quantity', e.target.value)}
-                  placeholder="Qty"
-                  className="w-16 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-                />
-                <input
-                  value={ing.unit}
-                  onChange={(e) => updateIngredient(i, 'unit', e.target.value)}
-                  placeholder="Unit"
-                  className="w-20 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-                />
-                <input
-                  value={ing.name}
-                  onChange={(e) => updateIngredient(i, 'name', e.target.value)}
-                  placeholder="Ingredient name"
-                  className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeIngredient(i)}
-                  disabled={ingredients.length <= 3}
-                  className="text-gray-400 hover:text-red-500 disabled:opacity-30 text-lg"
-                >
-                  ×
-                </button>
+                <input value={ing.quantity} onChange={e => updateIngredient(i, 'quantity', e.target.value)} placeholder="Qty" className="w-16 bg-surface-container-low border border-outline/20 rounded-xl px-2 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                <input value={ing.unit} onChange={e => updateIngredient(i, 'unit', e.target.value)} placeholder="Unit" className="w-20 bg-surface-container-low border border-outline/20 rounded-xl px-2 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                <input value={ing.name} onChange={e => updateIngredient(i, 'name', e.target.value)} placeholder="Ingredient name" className="flex-1 bg-surface-container-low border border-outline/20 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                <button type="button" onClick={() => removeIngredient(i)} disabled={ingredients.length <= 3} className="text-on-surface-variant hover:text-error disabled:opacity-30 text-xl w-8 h-8 flex items-center justify-center">×</button>
               </div>
             ))}
           </div>
-          <button
-            type="button"
-            onClick={addIngredient}
-            className="mt-3 text-sm text-orange-600 hover:text-orange-700 font-medium"
-          >
-            + Add ingredient
+          <button type="button" onClick={addIngredient} className="mt-3 text-sm text-primary font-label font-bold flex items-center gap-1 hover:underline">
+            <span className="material-symbols-outlined text-sm">add</span>Add ingredient
           </button>
         </div>
 
         {/* Steps */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <h2 className="font-semibold text-gray-800 mb-3">Steps (min. 2) *</h2>
+        <div className="bg-surface-container-lowest rounded-2xl border border-outline/10 p-6 shadow-sm">
+          <h2 className="font-headline font-bold text-on-surface mb-4">Steps (min. 2) *</h2>
           <div className="space-y-3">
             {steps.map((step, i) => (
               <div key={i} className="flex gap-3 items-start">
-                <span className="flex-shrink-0 w-7 h-7 rounded-full bg-orange-100 text-orange-700 text-sm font-bold flex items-center justify-center mt-1">
-                  {i + 1}
-                </span>
-                <textarea
-                  value={step.description}
-                  onChange={(e) => updateStep(i, e.target.value)}
-                  rows={2}
-                  placeholder={`Step ${i + 1} description…`}
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeStep(i)}
-                  disabled={steps.length <= 2}
-                  className="text-gray-400 hover:text-red-500 disabled:opacity-30 text-lg mt-1"
-                >
-                  ×
-                </button>
+                <span className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 text-primary text-sm font-headline font-bold flex items-center justify-center mt-1">{i + 1}</span>
+                <textarea value={step.description} onChange={e => updateStep(i, e.target.value)} rows={2} placeholder={`Describe step ${i + 1}...`} className="flex-1 bg-surface-container-low border border-outline/20 rounded-xl px-3 py-2.5 text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none" />
+                <button type="button" onClick={() => removeStep(i)} disabled={steps.length <= 2} className="text-on-surface-variant hover:text-error disabled:opacity-30 text-xl w-8 h-8 flex items-center justify-center mt-1">×</button>
               </div>
             ))}
           </div>
-          <button
-            type="button"
-            onClick={addStep}
-            className="mt-3 text-sm text-orange-600 hover:text-orange-700 font-medium"
-          >
-            + Add step
+          <button type="button" onClick={addStep} className="mt-3 text-sm text-primary font-label font-bold flex items-center gap-1 hover:underline">
+            <span className="material-symbols-outlined text-sm">add</span>Add step
           </button>
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl transition-colors disabled:opacity-50"
-        >
-          {loading ? 'Submitting…' : 'Submit Recipe for Review'}
+        <button type="submit" disabled={loading} className="w-full py-4 bg-gradient-to-br from-primary to-primary-container text-on-primary rounded-full font-label font-bold text-sm uppercase tracking-widest shadow-lg transition-all active:scale-[0.98] disabled:opacity-60">
+          {loading ? 'Publishing...' : 'Publish Recipe'}
         </button>
       </form>
     </div>
