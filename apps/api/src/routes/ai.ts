@@ -124,13 +124,12 @@ async function incrementFixerCount(userId: string) {
 }
 
 // ─── POST /api/ai/fixer ───────────────────────────────────────────────────────
-// Task 9.1 — Recipe Fixer (Requirements: 8.1–8.7)
+// No auth required — anyone can use the fixer
 
-router.post('/fixer', verifyToken, async (req: Request, res: Response) => {
-  const userId = req.user!.userId;
+router.post('/fixer', async (req: Request, res: Response) => {
   const { problem } = req.body;
 
-  // Validate input (Req 8.2)
+  // Validate input
   if (!problem || typeof problem !== 'string' || !problem.trim()) {
     res.status(422).json({
       error: { code: 'VALIDATION_ERROR', message: 'problem description is required.', retryable: false },
@@ -144,35 +143,14 @@ router.post('/fixer', verifyToken, async (req: Request, res: Response) => {
     return;
   }
 
-  // Fetch user
-  const user = await getUser(userId);
-  if (!user) {
-    res.status(401).json({ error: { code: 'UNAUTHORIZED', message: 'User not found.', retryable: false } });
-    return;
-  }
+  // Use a dummy user object — no quota for anonymous users
+  void { isPremium: true, subscriptionStatus: 'active' }; // no quota enforcement
 
-  // Quota check for free/trial users (Req 8.4, 8.5)
-  if (isFreeTierUser(user)) {
-    const usage = await getAiUsageToday(userId);
-    if (usage.fixerCount >= 5) {
-      res.status(429).json({
-        error: {
-          code: 'QUOTA_EXCEEDED',
-          message: 'You have reached your daily limit of 5 Recipe Fixer queries. Upgrade to premium for unlimited access.',
-          retryable: false,
-        },
-      });
-      return;
-    }
-  }
-
-  // Call Gemini API (Req 8.1, 8.3)
+  // Call Gemini API
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    // Use smart fallback when no API key configured
     const fallbackSuggestions = getFallbackFixes(problem);
-    if (isFreeTierUser(user)) await incrementFixerCount(userId);
-    res.json({ suggestions: fallbackSuggestions, source: 'culinary_knowledge', quota: isFreeTierUser(user) ? { used: (await getAiUsageToday(userId)).fixerCount, limit: 5 } : { unlimited: true } });
+    res.json({ suggestions: fallbackSuggestions, source: 'culinary_knowledge' });
     return;
   }
 
@@ -204,8 +182,7 @@ Respond with ONLY a JSON array like: ["suggestion 1", "suggestion 2", "suggestio
     if (!geminiRes.ok) {
       // Gemini error — use smart fallback instead of returning error
       const fallbackSuggestions = getFallbackFixes(problem);
-      if (isFreeTierUser(user)) await incrementFixerCount(userId);
-      res.json({ suggestions: fallbackSuggestions, source: 'culinary_knowledge', quota: isFreeTierUser(user) ? { used: (await getAiUsageToday(userId)).fixerCount, limit: 5 } : { unlimited: true } });
+      res.json({ suggestions: fallbackSuggestions, source: 'culinary_knowledge' });
       return;
     }
 
@@ -236,37 +213,19 @@ Respond with ONLY a JSON array like: ["suggestion 1", "suggestion 2", "suggestio
     // Timeout or network error — use smart fallback
     console.error('[ai/fixer] Gemini error:', err);
     const fallbackSuggestions = getFallbackFixes(problem);
-    if (isFreeTierUser(user)) await incrementFixerCount(userId);
-    res.json({ suggestions: fallbackSuggestions, source: 'culinary_knowledge', quota: isFreeTierUser(user) ? { used: (await getAiUsageToday(userId)).fixerCount, limit: 5 } : { unlimited: true } });
+    res.json({ suggestions: fallbackSuggestions, source: 'culinary_knowledge' });
     return;
   }
 
-  // Increment quota only on success (Req 8.5)
-  if (isFreeTierUser(user)) {
-    await incrementFixerCount(userId);
-  }
+  console.info('[ai/fixer] query logged', { problemLength: problem.length, suggestionCount: suggestions.length });
 
-  // Log query + anonymized response to ai_usage (Req 8.7)
-  // We already upserted/incremented above; log is implicit in fixer_count
-  // For audit purposes, we log to console with anonymized data
-  console.info('[ai/fixer] query logged', {
-    userId: userId.slice(0, 8) + '****', // anonymized
-    problemLength: problem.length,
-    suggestionCount: suggestions.length,
-  });
-
-  res.json({
-    suggestions,
-    quota: isFreeTierUser(user)
-      ? { used: (await getAiUsageToday(userId)).fixerCount, limit: 5 }
-      : { unlimited: true },
-  });
+  res.json({ suggestions });
 });
 
 // ─── POST /api/ai/scanner ─────────────────────────────────────────────────────
-// Task 9.4 — Dish Scanner (Requirements: 9.1–9.4)
+// No auth required — anyone can scan
 
-router.post('/scanner', verifyToken, async (req: Request, res: Response) => {
+router.post('/scanner', async (req: Request, res: Response) => {
   const { image_url, image_base64, mime_type } = req.body;
 
   // Validate input (Req 9.2)

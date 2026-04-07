@@ -39,10 +39,10 @@ function sanitize(input: unknown): string {
 }
 
 // ─── POST /api/feed/posts ─────────────────────────────────────────────────────
-// Task 8.1 — create post (Requirements: 7.2, 7.7)
+// No auth required — anyone can post
 
-router.post('/posts', verifyToken, requireMongo, async (req: Request, res: Response) => {
-  const userId = req.user!.userId;
+router.post('/posts', requireMongo, async (req: Request, res: Response) => {
+  const userId = req.user?.userId || `anon_${Date.now()}`;
   const { caption, media, recipe_tags } = req.body;
 
   // Validate caption (Req 7.2)

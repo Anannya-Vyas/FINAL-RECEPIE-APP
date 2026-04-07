@@ -89,15 +89,24 @@ export default function WorldMap({ regions, onRegionSelect, selectedRegion }: Wo
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<import('leaflet').Map | null>(null);
   const markersRef = useRef<import('leaflet').CircleMarker[]>([]);
+  const initializingRef = useRef(false);
 
   useEffect(() => {
-    if (!mapRef.current || mapInstanceRef.current) return;
+    if (!mapRef.current || mapInstanceRef.current || initializingRef.current) return;
+    initializingRef.current = true;
 
     // Dynamic import to avoid SSR
     import('leaflet').then(L => {
-      // Guard against double initialization (React StrictMode)
-      if (mapInstanceRef.current) return;
-      if (!mapRef.current) return;
+      // Double-check after async import
+      if (mapInstanceRef.current || !mapRef.current) {
+        initializingRef.current = false;
+        return;
+      }
+      // Check if leaflet already initialized this container
+      if ((mapRef.current as HTMLElement & { _leaflet_id?: number })._leaflet_id) {
+        initializingRef.current = false;
+        return;
+      }
 
       const map = L.map(mapRef.current, {
         center: [20, 0],
@@ -115,10 +124,10 @@ export default function WorldMap({ regions, onRegionSelect, selectedRegion }: Wo
         maxZoom: 19,
       }).addTo(map);
 
-      // Attribution in corner
       L.control.attribution({ position: 'bottomleft', prefix: false }).addTo(map);
 
       mapInstanceRef.current = map;
+      initializingRef.current = false;
     });
 
     return () => {
@@ -126,6 +135,7 @@ export default function WorldMap({ regions, onRegionSelect, selectedRegion }: Wo
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
+      initializingRef.current = false;
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

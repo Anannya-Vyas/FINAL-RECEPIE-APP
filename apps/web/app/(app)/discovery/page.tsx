@@ -148,7 +148,7 @@ function BentoGrid({ recipes, loading }: { recipes: Recipe[]; loading: boolean }
           <div className="p-6 rounded-3xl bg-surface-container-low flex flex-col gap-2 shadow-lg border border-outline/10">
             <span className="material-symbols-outlined text-secondary text-2xl">nutrition</span>
             <div className="mt-2">
-              <span className="block text-3xl font-black font-headline tracking-tighter">426+</span>
+              <span className="block text-3xl font-black font-headline tracking-tighter">{recipes.length > 0 ? `${recipes.length}+` : '500+'}</span>
               <span className="font-label text-[10px] font-bold text-on-surface-variant tracking-widest uppercase">Recipes Available</span>
             </div>
           </div>

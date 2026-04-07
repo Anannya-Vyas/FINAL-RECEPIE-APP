@@ -188,7 +188,7 @@ router.post('/', verifyToken, async (req: Request, res: Response) => {
         dietaryTags: sanitizedDietaryTags,
         flavorSpectrum: flavor_spectrum ?? null,
         isFamilyRecipe: Boolean(is_family_recipe),
-        status: 'pending', // always pending until moderation (Req 4.3, 15.1)
+        status: 'published', // publish directly — no moderation needed
       },
     });
 

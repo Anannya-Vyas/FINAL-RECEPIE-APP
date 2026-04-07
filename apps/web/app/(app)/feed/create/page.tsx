@@ -95,14 +95,14 @@ export default function CreatePostPage() {
   if (submitted) {
     return (
       <div className="max-w-xl mx-auto text-center py-20">
-        <div className="text-6xl mb-6">⏳</div>
-        <h2 className="font-headline text-2xl font-extrabold text-on-surface tracking-tight">Post submitted for review</h2>
+        <div className="text-6xl mb-6">🎉</div>
+        <h2 className="font-headline text-2xl font-extrabold text-on-surface tracking-tight">Post shared!</h2>
         <p className="text-on-surface-variant mt-3 leading-relaxed">
-          Your post is pending moderation and will appear in the feed once approved.
+          Your post is now live in the community feed.
         </p>
         <div className="flex gap-3 justify-center mt-8">
           <button onClick={() => router.push('/feed')} className="px-6 py-3 bg-gradient-to-br from-primary to-primary-container text-on-primary rounded-full font-label font-bold text-sm uppercase tracking-widest">
-            Back to Feed
+            View Feed
           </button>
           <button onClick={() => { setSubmitted(false); setCaption(''); setImages([]); setSelectedRecipes([]); }} className="px-6 py-3 bg-surface-container text-on-surface rounded-full font-label font-bold text-sm uppercase tracking-widest">
             Create Another
