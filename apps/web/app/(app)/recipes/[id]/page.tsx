@@ -100,14 +100,14 @@ export default function RecipeDetailPage() {
     if (!commentText.trim()) return;
     setSubmitting(true);
     try {
+      // No auth required — post directly
       await api.post(`/api/recipes/${id}/comments`, { text: commentText });
-      // Add comment locally so user sees it immediately
       const newComment: Comment = {
         _id: Date.now().toString(),
         text: commentText,
         author_id: 'You',
         created_at: new Date().toISOString(),
-        status: 'pending',
+        status: 'published',
       };
       setComments(prev => [newComment, ...prev]);
       setCommentText('');
@@ -129,11 +129,34 @@ export default function RecipeDetailPage() {
   function speakStep(stepText: string) {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
+
+    // Map language codes to BCP-47 tags for Web Speech API
+    const langMap: Record<string, string> = {
+      'en': 'en-US',
+      'hi': 'hi-IN',
+      'es': 'es-ES',
+      'fr': 'fr-FR',
+      'ar': 'ar-SA',
+      'zh': 'zh-CN',
+      'ja': 'ja-JP',
+      'de': 'de-DE',
+      'it': 'it-IT',
+      'pt': 'pt-BR',
+    };
+
     const utterance = new SpeechSynthesisUtterance(stepText);
-    utterance.lang = audioLang === 'hi' ? 'hi-IN' : audioLang === 'ar' ? 'ar-SA' : audioLang === 'zh' ? 'zh-CN' : audioLang === 'ja' ? 'ja-JP' : `${audioLang}-US`;
-    utterance.rate = 0.9;
+    utterance.lang = langMap[audioLang] || 'en-US';
+    utterance.rate = 0.85;
+    utterance.pitch = 1;
+
+    // Try to find a voice for the selected language
+    const voices = window.speechSynthesis.getVoices();
+    const matchingVoice = voices.find(v => v.lang.startsWith(audioLang) || v.lang === (langMap[audioLang] || 'en-US'));
+    if (matchingVoice) utterance.voice = matchingVoice;
+
     utteranceRef.current = utterance;
     utterance.onend = () => setAudioPlaying(false);
+    utterance.onerror = () => setAudioPlaying(false);
     window.speechSynthesis.speak(utterance);
     setAudioPlaying(true);
   }
@@ -415,12 +438,9 @@ export default function RecipeDetailPage() {
               </h4>
               <div className="space-y-3 max-h-64 overflow-y-auto mb-4">
                 {comments.length > 0 ? comments.map((c, i) => (
-                  <div key={c._id || i} className={`p-3 rounded-xl ${c.status === 'pending' ? 'bg-tertiary-fixed/30 border border-tertiary-fixed' : 'bg-surface-container-lowest'}`}>
+                  <div key={c._id || i} className="p-3 bg-surface-container-lowest rounded-xl">
                     <p className="text-sm text-on-surface">{c.text}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <p className="text-[10px] text-on-surface-variant">{new Date(c.created_at).toLocaleDateString()}</p>
-                      {c.status === 'pending' && <span className="text-[10px] text-tertiary font-label font-bold">⏳ Pending review</span>}
-                    </div>
+                    <p className="text-[10px] text-on-surface-variant mt-1">{new Date(c.created_at).toLocaleDateString()}</p>
                   </div>
                 )) : (
                   <p className="text-xs text-on-surface-variant text-center py-4">No comments yet. Be the first!</p>
@@ -428,7 +448,7 @@ export default function RecipeDetailPage() {
               </div>
               {commentSubmitted && (
                 <div className="mb-3 p-2 bg-secondary-fixed rounded-lg text-xs text-on-secondary-fixed font-label font-bold text-center">
-                  ✓ Comment submitted! It will appear after review.
+                  ✓ Comment added!
                 </div>
               )}
               <form onSubmit={submitComment} className="flex gap-2">

@@ -434,9 +434,9 @@ router.delete('/:id', verifyToken, async (req: Request, res: Response) => {
 // ─── POST /api/recipes/:id/ratings ───────────────────────────────────────────
 // Task 5.12 — upsert rating (Requirements: 6.1, 6.7)
 
-router.post('/:id/ratings', verifyToken, async (req: Request, res: Response) => {
+router.post('/:id/ratings', async (req: Request, res: Response) => {
   const { id: recipeId } = req.params;
-  const userId = req.user!.userId;
+  const userId = req.user?.userId;
   const { value } = req.body;
 
   const ratingValue = Number(value);
@@ -452,24 +452,25 @@ router.post('/:id/ratings', verifyToken, async (req: Request, res: Response) => 
       return;
     }
 
-    // Upsert: one rating per user per recipe (Req 6.1, 6.7)
-    await prisma.$executeRaw`
-      INSERT INTO ratings (id, user_id, recipe_id, value, created_at, updated_at)
-      VALUES (gen_random_uuid(), ${userId}::uuid, ${recipeId}::uuid, ${ratingValue}::smallint, NOW(), NOW())
-      ON CONFLICT (user_id, recipe_id)
-      DO UPDATE SET value = ${ratingValue}::smallint, updated_at = NOW()
-    `;
+    // If user is authenticated, upsert their rating
+    if (userId) {
+      await prisma.$executeRaw`
+        INSERT INTO ratings (id, user_id, recipe_id, value, created_at, updated_at)
+        VALUES (gen_random_uuid(), ${userId}::uuid, ${recipeId}::uuid, ${ratingValue}::smallint, NOW(), NOW())
+        ON CONFLICT (user_id, recipe_id)
+        DO UPDATE SET value = ${ratingValue}::smallint, updated_at = NOW()
+      `;
+    } else {
+      // Anonymous rating — just create a new one with a generated UUID
+      await prisma.$executeRaw`
+        INSERT INTO ratings (id, user_id, recipe_id, value, created_at, updated_at)
+        VALUES (gen_random_uuid(), gen_random_uuid(), ${recipeId}::uuid, ${ratingValue}::smallint, NOW(), NOW())
+      `;
+    }
 
-    // Fetch the upserted rating to return it
-    const stored = await prisma.rating.findUnique({
-      where: { userId_recipeId: { userId, recipeId } },
-    });
-
-    // Compute new average
     const agg = await prisma.rating.aggregate({ where: { recipeId }, _avg: { value: true }, _count: true });
 
     res.status(200).json({
-      rating: stored,
       average_rating: agg._avg.value !== null ? Math.round(agg._avg.value * 10) / 10 : null,
       rating_count: agg._count,
     });
@@ -482,9 +483,10 @@ router.post('/:id/ratings', verifyToken, async (req: Request, res: Response) => 
 // ─── POST /api/recipes/:id/comments ──────────────────────────────────────────
 // Task 5.15 — create comment (Requirements: 6.3, 6.4, 6.5, 6.6)
 
-router.post('/:id/comments', verifyToken, async (req: Request, res: Response) => {
+router.post('/:id/comments', async (req: Request, res: Response) => {
+  // No auth required — anyone can comment
+  const userId = req.user?.userId || 'anonymous';
   const { id: recipeId } = req.params;
-  const userId = req.user!.userId;
   const { text, video_url } = req.body;
 
   if (!text || typeof text !== 'string' || !text.trim()) {
@@ -512,7 +514,7 @@ router.post('/:id/comments', verifyToken, async (req: Request, res: Response) =>
       author_id: userId,
       text: sanitizeText(text),
       video_url: video_url ? sanitizeText(video_url) : undefined,
-      status: 'pending', // queue for moderation (Req 6.5, 15.1)
+      status: 'published', // publish directly — no moderation needed
     });
 
     res.status(201).json({ comment });
@@ -531,7 +533,7 @@ router.get('/:id/comments', async (req: Request, res: Response) => {
   const limit = Math.min(20, Math.max(1, parseInt(String(req.query.limit ?? '20'), 10)));
 
   try {
-    const comments = await Comment.find({ recipe_id: recipeId, status: 'published' })
+    const comments = await Comment.find({ recipe_id: recipeId, status: { $in: ['published', 'pending'] } })
       .sort({ created_at: -1 }) // most recent first (Req 6.4)
       .skip((page - 1) * limit)
       .limit(limit)
