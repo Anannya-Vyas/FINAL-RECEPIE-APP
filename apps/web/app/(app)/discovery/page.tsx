@@ -42,7 +42,7 @@ function RecipeCard({ recipe }: { recipe: Recipe }) {
   );
 }
 
-function BentoGrid({ recipes, loading }: { recipes: Recipe[]; loading: boolean }) {
+function BentoGrid({ recipes, loading, totalRecipes }: { recipes: Recipe[]; loading: boolean; totalRecipes: number }) {
   const featured = recipes[0];
   const trending = recipes.slice(1, 4);
 
@@ -148,7 +148,7 @@ function BentoGrid({ recipes, loading }: { recipes: Recipe[]; loading: boolean }
           <div className="p-6 rounded-3xl bg-surface-container-low flex flex-col gap-2 shadow-lg border border-outline/10">
             <span className="material-symbols-outlined text-secondary text-2xl">nutrition</span>
             <div className="mt-2">
-              <span className="block text-3xl font-black font-headline tracking-tighter">{recipes.length > 0 ? `${recipes.length}+` : '500+'}</span>
+              <span className="block text-3xl font-black font-headline tracking-tighter">{totalRecipes > 0 ? `${totalRecipes}+` : '500+'}</span>
               <span className="font-label text-[10px] font-bold text-on-surface-variant tracking-widest uppercase">Recipes Available</span>
             </div>
           </div>
@@ -176,6 +176,7 @@ function BentoGrid({ recipes, loading }: { recipes: Recipe[]; loading: boolean }
 
 export default function DiscoveryPage() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [totalRecipes, setTotalRecipes] = useState<number>(0);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -189,6 +190,7 @@ export default function DiscoveryPage() {
     try {
       const { data } = await api.get('/api/recipes', { params: { page, limit: 20 } });
       const items: Recipe[] = data.recipes || [];
+      if (data.total) setTotalRecipes(data.total);
       setRecipes(prev => {
         const ids = new Set(prev.map(r => r.id));
         return [...prev, ...items.filter(r => !ids.has(r.id))];
@@ -229,7 +231,7 @@ export default function DiscoveryPage() {
       </header>
 
       {/* Bento grid with first 4 recipes */}
-      <BentoGrid recipes={recipes.slice(0, 4)} loading={!initialLoaded} />
+      <BentoGrid recipes={recipes.slice(0, 4)} loading={!initialLoaded} totalRecipes={totalRecipes} />
 
       {/* Recipe grid for the rest */}
       {recipes.length > 4 && (
