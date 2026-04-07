@@ -103,7 +103,7 @@ router.post('/posts', requireMongo, async (req: Request, res: Response) => {
       caption: sanitizedCaption,
       media: mediaItems,
       recipe_tags: sanitizedTags,
-      status: 'pending', // queue for moderation (Req 7.7, 15.1)
+      status: 'published', // publish directly — no moderation
     });
 
     res.status(201).json({ post });
@@ -114,27 +114,38 @@ router.post('/posts', requireMongo, async (req: Request, res: Response) => {
 });
 
 // ─── GET /api/feed ────────────────────────────────────────────────────────────
-// Task 8.2 — personal feed (Requirements: 7.1)
+// Personal feed — no auth required, shows all published posts if not logged in
 
-router.get('/', verifyToken, requireMongo, async (req: Request, res: Response) => {
-  const userId = req.user!.userId;
+router.get('/', requireMongo, async (req: Request, res: Response) => {
   const page = Math.max(1, parseInt(String(req.query.page ?? '1'), 10));
 
+  // Try to get userId from token if present
+  let userId: string | null = null;
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    try {
+      const jwt = await import('jsonwebtoken');
+      const payload = jwt.default.verify(authHeader.slice(7), process.env.JWT_SECRET || '') as { userId: string };
+      userId = payload.userId;
+    } catch { /* unauthenticated */ }
+  }
+
   try {
-    // Collect IDs of users the current user follows
-    const follows = await Follow.find({ follower_id: userId }).select('following_id').lean();
-    const followingIds = follows.map((f) => f.following_id);
-
-    if (followingIds.length === 0) {
-      res.json({ posts: [], page, limit: PAGE_LIMIT });
-      return;
+    let posts;
+    if (userId) {
+      // Authenticated: show posts from followed users
+      const follows = await Follow.find({ follower_id: userId }).select('following_id').lean();
+      const followingIds = follows.map(f => f.following_id);
+      if (followingIds.length === 0) {
+        // Not following anyone — show all published posts
+        posts = await Post.find({ status: 'published' }).sort({ created_at: -1 }).skip((page - 1) * PAGE_LIMIT).limit(PAGE_LIMIT).lean();
+      } else {
+        posts = await Post.find({ author_id: { $in: followingIds }, status: 'published' }).sort({ created_at: -1 }).skip((page - 1) * PAGE_LIMIT).limit(PAGE_LIMIT).lean();
+      }
+    } else {
+      // Not logged in — show all published posts
+      posts = await Post.find({ status: 'published' }).sort({ created_at: -1 }).skip((page - 1) * PAGE_LIMIT).limit(PAGE_LIMIT).lean();
     }
-
-    const posts = await Post.find({ author_id: { $in: followingIds }, status: 'published' })
-      .sort({ created_at: -1 }) // most recent first (Req 7.1)
-      .skip((page - 1) * PAGE_LIMIT)
-      .limit(PAGE_LIMIT)
-      .lean();
 
     res.json({ posts, page, limit: PAGE_LIMIT });
   } catch (err) {
@@ -194,22 +205,13 @@ router.delete('/follow/:userId', verifyToken, requireMongo, async (req: Request,
 
 router.get('/discover', requireMongo, async (req: Request, res: Response) => {
   const page = Math.max(1, parseInt(String(req.query.page ?? '1'), 10));
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
   try {
     const posts = await Post.aggregate([
+      { $match: { status: 'published' } },
       {
-        $match: {
-          status: 'published',
-          created_at: { $gte: sevenDaysAgo },
-        },
-      },
-      {
-        // Compute engagement score: likes + comments + shares (Req 7.6)
         $addFields: {
-          engagement_score: {
-            $add: ['$likes_count', '$comments_count', '$shares_count'],
-          },
+          engagement_score: { $add: ['$likes_count', '$comments_count', '$shares_count'] },
         },
       },
       { $sort: { engagement_score: -1, created_at: -1 } },
@@ -227,7 +229,7 @@ router.get('/discover', requireMongo, async (req: Request, res: Response) => {
 // ─── POST /api/feed/posts/:id/like ────────────────────────────────────────────
 // Task 8.8 — like a post (Requirements: 7.3)
 
-router.post('/posts/:id/like', verifyToken, async (req: Request, res: Response) => {
+router.post('/posts/:id/like', async (req: Request, res: Response) => {
   const { id } = req.params;
 
   try {

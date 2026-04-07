@@ -68,9 +68,21 @@ export default function RecipeDetailPage() {
           api.get(`/api/recipes/${id}/comments`).catch(() => ({ data: { comments: [] } })),
         ]);
         const r = recipeRes.data.recipe || recipeRes.data;
-        setRecipe(r);
-        if (r.averageRating != null) {
-          setCurrentRating({ avg: r.averageRating, count: r.ratingCount || 0 });
+        // Normalize snake_case API fields to camelCase
+        const normalized = {
+          ...r,
+          coverImageUrl: r.coverImageUrl || r.cover_image_url,
+          prepTimeMins: r.prepTimeMins || r.prep_time_mins,
+          cookTimeMins: r.cookTimeMins || r.cook_time_mins,
+          dietaryTags: r.dietaryTags || r.dietary_tags || [],
+          flavorSpectrum: r.flavorSpectrum || r.flavor_spectrum,
+          isFamilyRecipe: r.isFamilyRecipe ?? r.is_family_recipe,
+          averageRating: r.averageRating ?? r.average_rating,
+          ratingCount: r.ratingCount ?? r.rating_count ?? 0,
+        };
+        setRecipe(normalized);
+        if (normalized.averageRating != null) {
+          setCurrentRating({ avg: normalized.averageRating, count: normalized.ratingCount || 0 });
         }
         // Show all comments including pending ones for the author
         const allComments = commentsRes.data.comments || [];
@@ -348,7 +360,7 @@ export default function RecipeDetailPage() {
                 </div>
               </div>
             )}
-            {!currentRating || currentRating.count === 0 && (
+            {(!currentRating || currentRating.count === 0) && (
               <p className="text-xs text-on-surface-variant mb-3">No ratings yet. Be the first!</p>
             )}
             <div className="flex gap-2 mb-2">

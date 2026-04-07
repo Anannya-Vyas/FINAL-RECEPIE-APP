@@ -72,7 +72,7 @@ export default function MapPage() {
   );
 
   return (
-    <div className="relative h-[calc(100vh-8rem)] -mx-6 -mt-8 overflow-hidden rounded-2xl">
+    <div className="relative h-[calc(100vh-10rem)] overflow-hidden rounded-2xl">
       {/* Map */}
       <div className="absolute inset-0 z-0">
         <MapComponent regions={regions} onRegionSelect={handleRegionSelect} selectedRegion={selectedRegion} />
