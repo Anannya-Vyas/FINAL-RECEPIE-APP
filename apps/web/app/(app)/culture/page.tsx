@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 
 const FOOD_RITUALS = [
@@ -85,31 +85,6 @@ export default function CulturePage() {
   const [activeTab, setActiveTab] = useState<'calendar' | 'stories' | 'grandma'>('calendar');
   const [currentMonth] = useState(new Date().toLocaleString('default', { month: 'long' }));
   const [selectedStory, setSelectedStory] = useState(0);
-  const [speaking, setSpeaking] = useState(false);
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
-
-  function speakStory(text: string) {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.75;
-    utterance.pitch = 1.1;
-    utterance.lang = 'en-IN';
-    // Try to find a female Indian English voice
-    const voices = window.speechSynthesis.getVoices();
-    const preferred = voices.find(v => v.lang.includes('en-IN') || v.name.includes('India')) || voices.find(v => v.lang.includes('en'));
-    if (preferred) utterance.voice = preferred;
-    utterance.onend = () => setSpeaking(false);
-    utterance.onerror = () => setSpeaking(false);
-    utteranceRef.current = utterance;
-    window.speechSynthesis.speak(utterance);
-    setSpeaking(true);
-  }
-
-  function stopSpeaking() {
-    window.speechSynthesis?.cancel();
-    setSpeaking(false);
-  }
 
   return (
     <div className="max-w-screen-xl mx-auto">
@@ -192,7 +167,7 @@ export default function CulturePage() {
             {/* Story selector */}
             <div className="flex gap-2 mb-6 overflow-x-auto no-scrollbar">
               {GRANDMA_STORIES.map((s, i) => (
-                <button key={i} onClick={() => { setSelectedStory(i); stopSpeaking(); }}
+                <button key={i} onClick={() => setSelectedStory(i)}
                   className={`flex-shrink-0 px-4 py-2 rounded-full font-label font-bold text-sm transition-all ${selectedStory === i ? 'bg-primary text-on-primary' : 'bg-surface/60 text-on-surface hover:bg-surface'}`}>
                   {s.dish}
                 </button>
@@ -204,23 +179,6 @@ export default function CulturePage() {
               <p className="text-on-surface leading-relaxed italic text-base">&ldquo;{GRANDMA_STORIES[selectedStory].story}&rdquo;</p>
             </div>
 
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => speaking ? stopSpeaking() : speakStory(GRANDMA_STORIES[selectedStory].story)}
-                className="flex items-center gap-3 px-6 py-3 bg-gradient-to-br from-primary to-primary-container text-on-primary rounded-full font-label font-bold text-sm uppercase tracking-widest hover:shadow-lg transition-all active:scale-95"
-              >
-                <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>{speaking ? 'stop' : 'play_arrow'}</span>
-                {speaking ? 'Stop Narration' : 'Listen to Grandma'}
-              </button>
-              {speaking && (
-                <div className="flex gap-1 items-center">
-                  {[1, 2, 3, 4, 5].map(i => (
-                    <div key={i} className="w-1 bg-primary rounded-full animate-bounce" style={{ height: `${8 + i * 4}px`, animationDelay: `${i * 100}ms` }} />
-                  ))}
-                </div>
-              )}
-            </div>
-            <p className="text-xs text-on-surface-variant mt-3">Uses your device&apos;s built-in voice. Works best with English (India) voice installed.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
