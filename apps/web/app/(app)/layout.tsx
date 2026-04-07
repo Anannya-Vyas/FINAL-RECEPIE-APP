@@ -7,24 +7,22 @@ const NAV_LINKS = [
   { href: '/discovery', label: 'Discovery', icon: 'explore' },
   { href: '/feed', label: 'Feed', icon: 'movie' },
   { href: '/map', label: 'Map', icon: 'map' },
-  { href: '/scanner', label: 'Scanner', icon: 'photo_camera' },
   { href: '/fixer', label: 'Assistant', icon: 'smart_toy' },
   { href: '/health', label: 'Health', icon: 'favorite' },
   { href: '/culture', label: 'Culture', icon: 'history_edu' },
+  { href: '/garden', label: 'Garden', icon: 'yard' },
   { href: '/academy', label: 'Academy', icon: 'menu_book' },
-  { href: '/marketplace', label: 'Market', icon: 'storefront' },
   { href: '/planner', label: 'Planner', icon: 'calendar_month' },
   { href: '/pantry', label: 'Pantry', icon: 'kitchen' },
   { href: '/journal', label: 'Journal', icon: 'book' },
   { href: '/leaderboard', label: 'Ranks', icon: 'leaderboard' },
-  { href: '/penpal', label: 'Pen Pal', icon: 'mail' },
   { href: '/events', label: 'Events', icon: 'event' },
 ];
 
 const BOTTOM_NAV = [
   { href: '/discovery', label: 'Discovery', icon: 'explore' },
   { href: '/feed', label: 'Feed', icon: 'movie' },
-  { href: '/scanner', label: 'Scanner', icon: 'photo_camera' },
+  { href: '/health', label: 'Health', icon: 'favorite' },
   { href: '/fixer', label: 'Kitchen', icon: 'restaurant_menu' },
 ];
 

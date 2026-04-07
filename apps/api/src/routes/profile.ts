@@ -20,6 +20,43 @@ function sanitize(input: unknown): string {
   return input.replace(/<[^>]*>/g, '').trim();
 }
 
+// ─── GET /api/profile/leaderboard ────────────────────────────────────────────
+// Real leaderboard based on recipe count and ratings
+
+router.get('/leaderboard', async (_req: Request, res: Response) => {
+  try {
+    const topAuthors = await prisma.user.findMany({
+      select: {
+        id: true,
+        displayName: true,
+        avatarUrl: true,
+        _count: {
+          select: { recipes: true, ratings: true },
+        },
+      },
+      orderBy: { recipes: { _count: 'desc' } },
+      take: 20,
+    });
+
+    const leaders = topAuthors
+      .filter(u => u._count.recipes > 0)
+      .map((u, i) => ({
+        rank: i + 1,
+        userId: u.id,
+        displayName: u.displayName || `Chef ${u.id.slice(0, 6)}`,
+        avatarUrl: u.avatarUrl,
+        recipeCount: u._count.recipes,
+        ratingCount: u._count.ratings,
+        points: u._count.recipes * 100 + u._count.ratings * 10,
+      }));
+
+    res.json({ leaders });
+  } catch (err) {
+    console.error('[profile] leaderboard error:', err);
+    res.json({ leaders: [] });
+  }
+});
+
 // ─── GET /api/profile/me ─────────────────────────────────────────────────────
 // Get current user's own profile
 
@@ -54,11 +91,21 @@ router.get('/me', verifyToken, async (req: Request, res: Response) => {
 });
 
 // ─── GET /api/profile/:userId ─────────────────────────────────────────────────
-// Task 15.1 — view user profile (Requirements: 16.1, 16.3, 16.4)
+// View user profile — no auth required for public profiles
 
-router.get('/:userId', verifyToken, async (req: Request, res: Response) => {
-  const requesterId = req.user!.userId;
+router.get('/:userId', async (req: Request, res: Response) => {
   const { userId } = req.params;
+
+  // Try to get requesterId from token if present
+  let requesterId: string | null = null;
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    try {
+      const jwt = await import('jsonwebtoken');
+      const payload = jwt.default.verify(authHeader.slice(7), process.env.JWT_SECRET || '') as { userId: string };
+      requesterId = payload.userId;
+    } catch { /* unauthenticated */ }
+  }
 
   try {
     const user = await prisma.user.findUnique({
@@ -104,7 +151,6 @@ router.get('/:userId', verifyToken, async (req: Request, res: Response) => {
         return;
       }
     }
-
     // Follower / following counts from MongoDB (Req 16.1)
     let followerCount = 0, followingCount = 0;
     try {

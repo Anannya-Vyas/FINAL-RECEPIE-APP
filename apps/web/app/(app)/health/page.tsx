@@ -5,14 +5,26 @@ import Link from 'next/link';
 import api from '../../../lib/api';
 
 const CONDITIONS = [
-  { id: 'diabetes', label: 'Diabetes', icon: '🩸', color: 'bg-red-50 border-red-200 text-red-700', tag: 'diabetic-friendly', description: 'Low glycemic index recipes, no refined sugar' },
-  { id: 'hypertension', label: 'Hypertension', icon: '❤️', color: 'bg-pink-50 border-pink-200 text-pink-700', tag: 'low-sodium', description: 'Low sodium, heart-healthy options' },
-  { id: 'thyroid', label: 'Thyroid Issues', icon: '🦋', color: 'bg-purple-50 border-purple-200 text-purple-700', tag: 'thyroid-friendly', description: 'Iodine-balanced, goitrogen-aware recipes' },
-  { id: 'pcod', label: 'PCOD/PCOS', icon: '🌸', color: 'bg-rose-50 border-rose-200 text-rose-700', tag: 'pcod-friendly', description: 'Anti-inflammatory, hormone-balancing foods' },
-  { id: 'kidney', label: 'Kidney Disease', icon: '🫘', color: 'bg-orange-50 border-orange-200 text-orange-700', tag: 'kidney-friendly', description: 'Low potassium, low phosphorus recipes' },
-  { id: 'cholesterol', label: 'High Cholesterol', icon: '💛', color: 'bg-yellow-50 border-yellow-200 text-yellow-700', tag: 'low-cholesterol', description: 'Heart-healthy fats, fiber-rich foods' },
-  { id: 'gluten', label: 'Gluten Intolerance', icon: '🌾', color: 'bg-amber-50 border-amber-200 text-amber-700', tag: 'gluten-free', description: 'Certified gluten-free recipes' },
-  { id: 'lactose', label: 'Lactose Intolerance', icon: '🥛', color: 'bg-blue-50 border-blue-200 text-blue-700', tag: 'dairy-free', description: 'Dairy-free alternatives and recipes' },
+  { id: 'diabetes', label: 'Diabetes', icon: '🩸', tag: 'diabetic-friendly', description: 'Low glycemic index, no refined sugar' },
+  { id: 'hypertension', label: 'Hypertension', icon: '❤️', tag: 'low-sodium', description: 'Low sodium, heart-healthy options' },
+  { id: 'thyroid', label: 'Thyroid Issues', icon: '🦋', tag: 'thyroid-friendly', description: 'Iodine-balanced, goitrogen-aware' },
+  { id: 'pcod', label: 'PCOD/PCOS', icon: '🌸', tag: 'pcod-friendly', description: 'Anti-inflammatory, hormone-balancing' },
+  { id: 'kidney', label: 'Kidney Disease', icon: '🫘', tag: 'kidney-friendly', description: 'Low potassium, low phosphorus' },
+  { id: 'cholesterol', label: 'High Cholesterol', icon: '💛', tag: 'low-cholesterol', description: 'Heart-healthy fats, fiber-rich' },
+  { id: 'gluten', label: 'Gluten Intolerance', icon: '🌾', tag: 'gluten-free', description: 'Certified gluten-free recipes' },
+  { id: 'lactose', label: 'Lactose Intolerance', icon: '🥛', tag: 'dairy-free', description: 'Dairy-free alternatives' },
+  { id: 'ibs', label: 'IBS / Gut Issues', icon: '🫁', tag: 'gut-friendly', description: 'Low FODMAP, easy to digest' },
+  { id: 'anemia', label: 'Anemia', icon: '🔴', tag: 'iron-rich', description: 'Iron-rich, vitamin C enhanced' },
+  { id: 'arthritis', label: 'Arthritis', icon: '🦴', tag: 'anti-inflammatory', description: 'Anti-inflammatory, omega-3 rich' },
+  { id: 'obesity', label: 'Weight Management', icon: '⚖️', tag: 'low-calorie', description: 'Low calorie, high fiber, filling' },
+  { id: 'liver', label: 'Liver Disease', icon: '🟤', tag: 'liver-friendly', description: 'Low fat, no alcohol, detoxifying' },
+  { id: 'gout', label: 'Gout', icon: '🦶', tag: 'low-purine', description: 'Low purine, alkaline foods' },
+  { id: 'migraine', label: 'Migraine', icon: '🧠', tag: 'migraine-friendly', description: 'Avoid triggers: caffeine, MSG, aged cheese' },
+  { id: 'acne', label: 'Acne / Skin Issues', icon: '✨', tag: 'skin-friendly', description: 'Low glycemic, anti-inflammatory' },
+  { id: 'osteoporosis', label: 'Osteoporosis', icon: '🦷', tag: 'calcium-rich', description: 'Calcium and vitamin D rich' },
+  { id: 'pregnancy', label: 'Pregnancy', icon: '🤰', tag: 'pregnancy-safe', description: 'Folate-rich, safe for pregnancy' },
+  { id: 'menopause', label: 'Menopause', icon: '🌡️', tag: 'menopause-friendly', description: 'Phytoestrogen-rich, bone-supporting' },
+  { id: 'autism', label: 'Autism / Sensory', icon: '🌈', tag: 'sensory-friendly', description: 'Simple textures, mild flavors' },
 ];
 
 const INGREDIENT_HEALERS = [
@@ -24,6 +36,18 @@ const INGREDIENT_HEALERS = [
   { name: 'Ashwagandha', benefit: 'Stress & Thyroid', science: 'Reduces cortisol by 28%, supports thyroid T3/T4', tradition: 'Ayurveda: "Strength of a horse" adaptogen', emoji: '🌱', conditions: ['thyroid', 'stress', 'pcod'] },
   { name: 'Cinnamon (Dalchini)', benefit: 'Blood Sugar', science: 'Improves insulin sensitivity, lowers fasting glucose', tradition: 'Chinese medicine: warming spice for 2,700 years', emoji: '🟤', conditions: ['diabetes', 'cholesterol', 'pcod'] },
   { name: 'Moringa (Drumstick)', benefit: 'Complete Nutrition', science: '7x more Vitamin C than orange, 4x more calcium than milk', tradition: 'Ayurveda: "Miracle tree" — treats 300 diseases', emoji: '🌿', conditions: ['malnutrition', 'diabetes', 'inflammation'] },
+  { name: 'Triphala', benefit: 'Gut Health', science: 'Prebiotic effect, improves gut microbiome diversity', tradition: 'Ayurveda: Three-fruit formula used for 2,000 years', emoji: '🍃', conditions: ['ibs', 'digestion', 'immunity'] },
+  { name: 'Neem', benefit: 'Blood Purifier', science: 'Nimbidin has antibacterial and antifungal properties', tradition: 'Ayurveda: "Village pharmacy" — every part is medicinal', emoji: '🌿', conditions: ['acne', 'diabetes', 'immunity'] },
+  { name: 'Brahmi', benefit: 'Brain Health', science: 'Bacosides improve memory and reduce anxiety by 20%', tradition: 'Ayurveda: "Herb of grace" — used by scholars for centuries', emoji: '🧠', conditions: ['migraine', 'stress', 'memory'] },
+  { name: 'Shatavari', benefit: "Women's Health", science: 'Phytoestrogens balance hormones, support lactation', tradition: 'Ayurveda: "She who has 100 husbands" — female tonic', emoji: '🌸', conditions: ['pcod', 'menopause', 'pregnancy'] },
+  { name: 'Giloy (Guduchi)', benefit: 'Immunity & Fever', science: 'Tinosporin activates macrophages, reduces fever', tradition: 'Ayurveda: "Amrita" — the root of immortality', emoji: '🌿', conditions: ['immunity', 'fever', 'arthritis'] },
+  { name: 'Flaxseeds (Alsi)', benefit: 'Omega-3 & Fiber', science: 'ALA omega-3 reduces LDL by 15%, lignans balance hormones', tradition: 'Ancient Egypt: Hippocrates prescribed for gut health', emoji: '🟤', conditions: ['cholesterol', 'pcod', 'constipation'] },
+  { name: 'Pomegranate (Anar)', benefit: 'Heart & Blood', science: 'Punicalagins reduce arterial plaque by 30%', tradition: 'Persian medicine: "Fruit of paradise" for 4,000 years', emoji: '🔴', conditions: ['hypertension', 'anemia', 'immunity'] },
+  { name: 'Bitter Gourd (Karela)', benefit: 'Diabetes Control', science: 'Charantin mimics insulin, lowers blood glucose', tradition: 'Ayurveda: Prescribed for diabetes for 3,000 years', emoji: '🟢', conditions: ['diabetes', 'liver', 'immunity'] },
+  { name: 'Sesame (Til)', benefit: 'Bone & Calcium', science: '88mg calcium per tbsp — more than milk per calorie', tradition: 'Ancient India: Makar Sankranti — sesame for warmth and strength', emoji: '⚪', conditions: ['osteoporosis', 'menopause', 'anemia'] },
+  { name: 'Kokum', benefit: 'Digestive & Cooling', science: 'Hydroxycitric acid aids digestion, anti-obesity effect', tradition: 'Konkan coast: "The Goan tamarind" — summer cooler', emoji: '🟣', conditions: ['obesity', 'ibs', 'liver'] },
+  { name: 'Drumstick Leaves (Moringa)', benefit: 'Iron & Protein', science: '3x more iron than spinach, complete amino acid profile', tradition: 'Tamil Nadu: "Murungai" — added to sambar for nutrition', emoji: '🌿', conditions: ['anemia', 'pregnancy', 'malnutrition'] },
+  { name: 'Black Seed (Kalonji)', benefit: 'Universal Healer', science: 'Thymoquinone: anti-cancer, anti-diabetic, anti-inflammatory', tradition: 'Prophet Muhammad: "Cure for everything except death"', emoji: '⚫', conditions: ['immunity', 'diabetes', 'arthritis'] },
 ];
 
 interface Recipe {

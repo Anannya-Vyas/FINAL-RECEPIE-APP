@@ -178,17 +178,22 @@ router.get('/autocomplete', async (req: Request, res: Response) => {
       attributesToRetrieve: ['id', 'title'],
     });
 
-    const suggestions = (result.hits as Record<string, unknown>[]).map((h) => ({
-      id: h.id,
-      title: h.title,
-    }));
+    const suggestions = (result.hits as Record<string, unknown>[]).map((h) => String(h.title || ''));
 
     res.json({ suggestions });
   } catch (err) {
     console.error('[search] autocomplete error:', err);
-    res.status(500).json({
-      error: { code: 'AUTOCOMPLETE_UNAVAILABLE', message: 'Autocomplete is temporarily unavailable.', retryable: true },
-    });
+    // Fallback to PostgreSQL
+    try {
+      const recipes = await prisma.recipe.findMany({
+        where: { status: 'published', title: { contains: q, mode: 'insensitive' } },
+        select: { title: true },
+        take: 5,
+      });
+      res.json({ suggestions: recipes.map(r => r.title) });
+    } catch {
+      res.json({ suggestions: [] });
+    }
   }
 });
 
