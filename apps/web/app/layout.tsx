@@ -13,7 +13,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       appearance={{
         variables: { colorPrimary: '#a03f28' },
       }}
-      clockSkewInMs={7 * 60 * 60 * 1000}
     >
       <html lang="en">
         <body className="bg-background text-on-surface font-body antialiased">
