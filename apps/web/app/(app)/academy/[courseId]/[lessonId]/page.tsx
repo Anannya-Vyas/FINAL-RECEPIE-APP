@@ -4,13 +4,14 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import api from '../../../../../lib/api';
-import PaywallOverlay from '../../../../../components/PaywallOverlay';
+
+interface LessonContent { text?: string; tips?: string[]; }
 
 interface LessonDetail {
   id: string;
   courseId: string;
   title: string;
-  content: string;
+  content: LessonContent | string;
   orderIndex: number;
   isFree: boolean;
   completed: boolean;
@@ -21,33 +22,16 @@ export default function LessonPage() {
   const { courseId, lessonId } = useParams<{ courseId: string; lessonId: string }>();
   const [lesson, setLesson] = useState<LessonDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [paywalled, setPaywalled] = useState(false);
   const [error, setError] = useState('');
   const [completing, setCompleting] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [badgeAwarded, setBadgeAwarded] = useState(false);
-  const [bookmarked, setBookmarked] = useState(false);
-  const [bookmarkLoading, setBookmarkLoading] = useState(false);
 
   useEffect(() => {
-    async function load() {
-      try {
-        const { data } = await api.get(`/api/academy/courses/${courseId}/lessons/${lessonId}`);
-        const l: LessonDetail = data.data;
-        setLesson(l);
-        setCompleted(l.completed);
-      } catch (err: unknown) {
-        const code = (err as { response?: { data?: { error?: { code?: string } } } })?.response?.data?.error?.code;
-        if (code === 'PREMIUM_REQUIRED') {
-          setPaywalled(true);
-        } else {
-          setError('Failed to load lesson.');
-        }
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
+    api.get(`/api/academy/courses/${courseId}/lessons/${lessonId}`)
+      .then(({ data }) => { setLesson(data.data); setCompleted(data.data.completed); })
+      .catch(() => setError('Failed to load lesson.'))
+      .finally(() => setLoading(false));
   }, [courseId, lessonId]);
 
   async function markComplete() {
@@ -56,91 +40,77 @@ export default function LessonPage() {
       const { data } = await api.post(`/api/academy/lessons/${lessonId}/complete`);
       setCompleted(true);
       if (data.data?.badgeAwarded) setBadgeAwarded(true);
-    } catch {
-      // silently fail
-    } finally {
-      setCompleting(false);
-    }
+    } catch { /* ignore */ }
+    finally { setCompleting(false); }
   }
 
-  async function toggleBookmark() {
-    setBookmarkLoading(true);
-    try {
-      const { data } = await api.get(`/api/academy/lessons/${lessonId}/bookmark`);
-      setBookmarked(data.data?.bookmarked ?? false);
-    } catch {
-      // silently fail
-    } finally {
-      setBookmarkLoading(false);
-    }
-  }
+  if (loading) return (
+    <div className="flex justify-center py-20">
+      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-20">
-        <div className="w-8 h-8 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (error || !lesson) return (
+    <div className="text-center py-20 text-on-surface-variant">{error || 'Lesson not found.'}</div>
+  );
 
-  if (paywalled) {
-    return <PaywallOverlay />;
-  }
-
-  if (error || !lesson) {
-    return <div className="text-center py-20 text-gray-500">{error || 'Lesson not found.'}</div>;
-  }
+  const content: LessonContent = typeof lesson.content === 'string'
+    ? { text: lesson.content }
+    : (lesson.content as LessonContent);
 
   return (
     <div className="max-w-2xl mx-auto">
-      <Link href={`/academy/${courseId}`} className="text-sm text-orange-500 hover:underline mb-4 inline-block">
-        ← Back to Course
+      <Link href={`/academy/${courseId}`} className="inline-flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors font-label text-xs font-bold uppercase tracking-widest mb-6">
+        <span className="material-symbols-outlined text-sm">arrow_back</span>Back to Course
       </Link>
 
-      <div className="flex items-start justify-between mb-2">
-        <div>
-          <span className="text-xs text-gray-400 uppercase tracking-wide">Lesson {lesson.orderIndex}</span>
-          <h1 className="text-2xl font-bold text-gray-900 mt-0.5">{lesson.title}</h1>
+      <div className="mb-6">
+        <span className="font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Lesson {lesson.orderIndex}</span>
+        <h1 className="font-headline text-3xl font-extrabold text-on-surface tracking-tight mt-1">{lesson.title}</h1>
+        <div className="flex gap-2 mt-2">
+          {lesson.isFree && <span className="text-[10px] font-label font-bold uppercase tracking-widest bg-secondary-fixed text-on-secondary-fixed px-2 py-1 rounded-full">Free Lesson</span>}
+          {completed && <span className="text-[10px] font-label font-bold uppercase tracking-widest bg-tertiary-fixed text-on-tertiary-fixed px-2 py-1 rounded-full">✓ Completed</span>}
         </div>
-        <button
-          onClick={toggleBookmark}
-          disabled={bookmarkLoading}
-          className={`mt-1 text-xl transition-colors ${bookmarked ? 'text-orange-500' : 'text-gray-300 hover:text-orange-400'}`}
-          title={bookmarked ? 'Remove bookmark' : 'Bookmark lesson'}
-        >
-          🔖
-        </button>
       </div>
 
-      {/* Content */}
-      <div className="prose prose-sm max-w-none mt-4 mb-8 text-gray-700 whitespace-pre-wrap">
-        {lesson.content}
-      </div>
-
-      {/* Badge notification */}
       {badgeAwarded && (
-        <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl text-center">
-          <p className="text-amber-700 font-semibold">🏅 Course Complete! You earned a badge!</p>
+        <div className="mb-6 p-4 bg-tertiary-fixed rounded-2xl text-center">
+          <p className="font-headline font-bold text-on-tertiary-fixed">🏅 Course Complete! Badge earned!</p>
         </div>
       )}
 
-      {/* Mark complete */}
+      <div className="bg-surface-container-lowest rounded-2xl p-6 border border-outline/10 shadow-sm mb-6">
+        {content?.text && <p className="text-on-surface leading-relaxed text-base">{content.text}</p>}
+        {content?.tips && content.tips.length > 0 && (
+          <div className="mt-6">
+            <h3 className="font-headline font-bold text-on-surface mb-3 flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-sm">lightbulb</span>Pro Tips
+            </h3>
+            <div className="space-y-2">
+              {content.tips.map((tip, i) => (
+                <div key={i} className="flex items-start gap-3 p-3 bg-surface-container rounded-xl">
+                  <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">{i + 1}</span>
+                  <p className="text-sm text-on-surface-variant">{tip}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
       {completed ? (
-        <div className="flex items-center gap-2 text-green-600 font-medium text-sm">
-          <span className="text-xl">✅</span> Lesson completed
-          {lesson.completedAt && (
-            <span className="text-gray-400 font-normal">
-              · {new Date(lesson.completedAt).toLocaleDateString()}
-            </span>
-          )}
+        <div className="flex items-center gap-3 p-4 bg-secondary-fixed rounded-2xl">
+          <span className="material-symbols-outlined text-secondary text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+          <div>
+            <p className="font-headline font-bold text-on-secondary-fixed">Lesson completed</p>
+            {lesson.completedAt && <p className="text-xs text-on-secondary-fixed/70">{new Date(lesson.completedAt).toLocaleDateString()}</p>}
+          </div>
         </div>
       ) : (
-        <button
-          onClick={markComplete}
-          disabled={completing}
-          className="px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl transition-colors disabled:opacity-50"
-        >
-          {completing ? 'Saving…' : '✓ Mark as Complete'}
+        <button onClick={markComplete} disabled={completing}
+          className="w-full py-4 bg-gradient-to-br from-primary to-primary-container text-on-primary rounded-full font-label font-bold text-sm uppercase tracking-widest shadow-lg transition-all active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-2">
+          <span className="material-symbols-outlined text-sm">check</span>
+          {completing ? 'Saving...' : 'Mark as Complete'}
         </button>
       )}
     </div>

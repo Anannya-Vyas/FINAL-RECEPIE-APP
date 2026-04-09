@@ -122,34 +122,98 @@ router.get('/courses', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
-// ─── GET /api/academy/courses/:courseId/lessons/:lessonId ─────────────────────
-// Get lesson content. Free-tier users can only access order_index = 1 (Req 11.6, 11.7)
-router.get('/courses/:courseId/lessons/:lessonId', async (req: Request, res: Response): Promise<void> => {
-  const userId = req.user!.userId;
-  const { courseId, lessonId } = req.params;
+// ─── GET /api/academy/courses/:courseId ──────────────────────────────────────
+// Get a single course with all its lessons — no auth required
+
+router.get('/courses/:courseId', async (req: Request, res: Response): Promise<void> => {
+  const { courseId } = req.params;
+
+  // Try to get userId from token if present
+  let userId: string | null = null;
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    try {
+      const jwt = await import('jsonwebtoken');
+      const payload = jwt.default.verify(authHeader.slice(7), process.env.JWT_SECRET || '') as { userId: string };
+      userId = payload.userId;
+    } catch { /* unauthenticated */ }
+  }
 
   try {
-    // Fetch user premium status
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { isPremium: true, subscriptionStatus: true, trialStartDate: true },
+    const course = await prisma.course.findUnique({
+      where: { id: courseId },
+      include: {
+        lessons: {
+          orderBy: { orderIndex: 'asc' },
+          select: { id: true, title: true, orderIndex: true, isFree: true },
+        },
+      },
     });
 
-    if (!user) {
-      res.status(401).json({ error: { code: 'UNAUTHORIZED', message: 'User not found.', retryable: false } });
+    if (!course) {
+      res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Course not found.', retryable: false } });
       return;
     }
 
+    // Get progress if authenticated
+    let completedSet = new Set<string>();
+    if (userId) {
+      const lessonIds = course.lessons.map(l => l.id);
+      const progress = await prisma.userLessonProgress.findMany({
+        where: { userId, lessonId: { in: lessonIds }, completed: true },
+        select: { lessonId: true },
+      });
+      completedSet = new Set(progress.map(p => p.lessonId));
+    }
+
+    const totalLessons = course.lessons.length;
+    const completedCount = course.lessons.filter(l => completedSet.has(l.id)).length;
+
+    res.json({
+      data: {
+        id: course.id,
+        title: course.title,
+        category: course.category,
+        description: course.description,
+        isPremium: course.isPremium,
+        totalLessons,
+        completedLessons: completedCount,
+        progressPercent: totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0,
+        lessons: course.lessons.map(l => ({
+          id: l.id,
+          title: l.title,
+          orderIndex: l.orderIndex,
+          isFree: l.isFree,
+          completed: completedSet.has(l.id),
+        })),
+      },
+    });
+  } catch (err) {
+    console.error('[academy] GET /courses/:courseId error:', err);
+    res.status(500).json({ error: { code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch course.', retryable: true } });
+  }
+});
+
+// ─── GET /api/academy/courses/:courseId/lessons/:lessonId ─────────────────────
+// Get lesson content — no auth required for free lessons
+router.get('/courses/:courseId/lessons/:lessonId', async (req: Request, res: Response): Promise<void> => {
+  // Try to get userId from token if present
+  let userId: string | null = null;
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    try {
+      const jwt = await import('jsonwebtoken');
+      const payload = jwt.default.verify(authHeader.slice(7), process.env.JWT_SECRET || '') as { userId: string };
+      userId = payload.userId;
+    } catch { /* unauthenticated */ }
+  }
+
+  const { courseId, lessonId } = req.params;
+
+  try {
     const lesson = await prisma.lesson.findFirst({
       where: { id: lessonId, courseId },
-      select: {
-        id: true,
-        courseId: true,
-        title: true,
-        content: true,
-        orderIndex: true,
-        isFree: true,
-      },
+      select: { id: true, courseId: true, title: true, content: true, orderIndex: true, isFree: true },
     });
 
     if (!lesson) {
@@ -157,30 +221,20 @@ router.get('/courses/:courseId/lessons/:lessonId', async (req: Request, res: Res
       return;
     }
 
-    // Free-tier restriction: only the first lesson (order_index = 1) is accessible (Req 11.7)
-    if (!isPremiumUser(user) && lesson.orderIndex !== 1) {
-      res.status(403).json({
-        error: {
-          code: 'PREMIUM_REQUIRED',
-          message: 'This lesson is only available to premium subscribers. Upgrade to access all lessons.',
-          retryable: false,
-          subscription_required: true,
-        },
-      });
-      return;
+    // Fetch user's progress for this lesson if authenticated
+    let progressData = null;
+    if (userId) {
+      progressData = await prisma.userLessonProgress.findUnique({
+        where: { userId_lessonId: { userId, lessonId } },
+        select: { completed: true, completedAt: true },
+      }).catch(() => null);
     }
-
-    // Fetch user's progress for this lesson
-    const progress = await prisma.userLessonProgress.findUnique({
-      where: { userId_lessonId: { userId, lessonId } },
-      select: { completed: true, completedAt: true },
-    });
 
     res.json({
       data: {
         ...lesson,
-        completed: progress?.completed ?? false,
-        completedAt: progress?.completedAt ?? null,
+        completed: progressData?.completed ?? false,
+        completedAt: progressData?.completedAt ?? null,
       },
     });
   } catch (err) {
