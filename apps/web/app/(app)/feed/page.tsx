@@ -6,7 +6,8 @@ import api from '../../../lib/api';
 
 interface RecipeTag { id: string; title: string; }
 interface Post {
-  id: string;
+  _id?: string;
+  id?: string;
   caption: string;
   media?: Array<{ type: string; url: string }>;
   author_id: string;
@@ -21,9 +22,28 @@ type FeedTab = 'following' | 'discover';
 
 const FILTER_CHIPS = ['ALL ORIGINS', 'RAJASTHAN, IN', 'OAXACA, MX', 'TUSCANY, IT', 'SICHUAN, CN', 'KYOTO, JP'];
 
-function PostCard({ post, onLike }: { post: Post; onLike: (id: string) => void }) {
+function PostCard({ post, onLike, onShare }: { post: Post; onLike: (id: string) => void; onShare: (id: string) => void }) {
+  const postId = post._id || post.id || '';
   const images = post.media?.filter(m => m.type === 'image') || [];
   const video = post.media?.find(m => m.type === 'video');
+  const [liked, setLiked] = useState(false);
+  const [shared, setShared] = useState(false);
+
+  function handleLikeClick() {
+    if (liked) return; // prevent double-liking
+    setLiked(true);
+    onLike(postId);
+  }
+
+  function handleShareClick() {
+    if (shared) return;
+    setShared(true);
+    onShare(postId);
+    // Also copy link to clipboard
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(window.location.origin + '/feed').catch(() => {});
+    }
+  }
 
   return (
     <div className="bg-surface-container-lowest rounded-[2rem] overflow-hidden shadow-sm border border-outline/10">
@@ -70,18 +90,19 @@ function PostCard({ post, onLike }: { post: Post; onLike: (id: string) => void }
 
         {/* Actions */}
         <div className="flex items-center gap-6 pt-4 border-t border-outline-variant/20">
-          <button onClick={() => onLike(post.id)} className="flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors">
-            <span className="material-symbols-outlined text-xl">favorite</span>
-            <span className="font-label text-xs font-bold">{post.likes_count}</span>
+          <button onClick={handleLikeClick} className={`flex items-center gap-2 transition-colors ${liked ? 'text-primary' : 'text-on-surface-variant hover:text-primary'}`}>
+            <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: `'FILL' ${liked ? 1 : 0}` }}>favorite</span>
+            <span className="font-label text-xs font-bold">{post.likes_count + (liked ? 1 : 0)}</span>
           </button>
           <button className="flex items-center gap-2 text-on-surface-variant hover:text-secondary transition-colors">
             <span className="material-symbols-outlined text-xl">chat_bubble</span>
             <span className="font-label text-xs font-bold">{post.comments_count}</span>
           </button>
-          <button className="flex items-center gap-2 text-on-surface-variant hover:text-tertiary transition-colors">
+          <button onClick={handleShareClick} className={`flex items-center gap-2 transition-colors ${shared ? 'text-tertiary' : 'text-on-surface-variant hover:text-tertiary'}`}>
             <span className="material-symbols-outlined text-xl">share</span>
-            <span className="font-label text-xs font-bold">{post.shares_count}</span>
+            <span className="font-label text-xs font-bold">{post.shares_count + (shared ? 1 : 0)}</span>
           </button>
+          {shared && <span className="text-xs text-tertiary font-label font-bold">Link copied!</span>}
         </div>
       </div>
     </div>
@@ -130,10 +151,26 @@ export default function FeedPage() {
   }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleLike(postId: string) {
-    setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes_count: p.likes_count + 1 } : p));
+    if (!postId) return;
+    setPosts(prev => prev.map(p => {
+      const id = p._id || p.id;
+      return id === postId ? { ...p, likes_count: p.likes_count + 1 } : p;
+    }));
     api.post(`/api/feed/posts/${postId}/like`).catch(() => {
-      setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes_count: p.likes_count - 1 } : p));
+      setPosts(prev => prev.map(p => {
+        const id = p._id || p.id;
+        return id === postId ? { ...p, likes_count: Math.max(0, p.likes_count - 1) } : p;
+      }));
     });
+  }
+
+  function handleShare(postId: string) {
+    if (!postId) return;
+    setPosts(prev => prev.map(p => {
+      const id = p._id || p.id;
+      return id === postId ? { ...p, shares_count: p.shares_count + 1 } : p;
+    }));
+    api.post(`/api/feed/posts/${postId}/share`).catch(() => {});
   }
 
   return (
@@ -208,11 +245,11 @@ export default function FeedPage() {
         )}
 
         {posts.map((post, i) => {
-          // First post gets large span, rest alternate
+          const postId = post._id || post.id || String(i);
           const span = i === 0 ? 'col-span-12 md:col-span-8' : i % 3 === 1 ? 'col-span-12 md:col-span-4' : 'col-span-12 md:col-span-6';
           return (
-            <div key={post.id} className={span}>
-              <PostCard post={post} onLike={handleLike} />
+            <div key={postId} className={span}>
+              <PostCard post={post} onLike={handleLike} onShare={handleShare} />
             </div>
           );
         })}

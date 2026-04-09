@@ -296,7 +296,7 @@ router.post('/posts/:id/comments', verifyToken, async (req: Request, res: Respon
 // ─── POST /api/feed/posts/:id/share ──────────────────────────────────────────
 // Task 8.8 — share a post (Requirements: 7.3)
 
-router.post('/posts/:id/share', verifyToken, async (req: Request, res: Response) => {
+router.post('/posts/:id/share', async (req: Request, res: Response) => {
   const { id } = req.params;
 
   try {
