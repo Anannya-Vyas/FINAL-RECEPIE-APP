@@ -30,9 +30,6 @@ interface CourseWithLessons {
 
 const router = Router();
 
-// All academy routes require authentication
-router.use(verifyToken);
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /** Returns true if the user has an active premium subscription or a valid trial. */
@@ -47,9 +44,19 @@ function isPremiumUser(user: { isPremium: boolean; subscriptionStatus: string; t
 }
 
 // ─── GET /api/academy/courses ─────────────────────────────────────────────────
-// List all courses with the authenticated user's progress percentage (Req 11.1, 11.6, 11.7)
+// List all courses — no auth required, progress shown if logged in
 router.get('/courses', async (req: Request, res: Response): Promise<void> => {
-  const userId = req.user!.userId;
+  // Try to get userId from token if present
+  let userId: string | null = null;
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    try {
+      const jwt = await import('jsonwebtoken');
+      const payload = jwt.default.verify(authHeader.slice(7), process.env.JWT_SECRET || '') as { userId: string };
+      userId = payload.userId;
+    } catch { /* unauthenticated */ }
+  }
+
   const page = Math.max(1, parseInt(req.query.page as string) || 1);
   const PAGE_SIZE = 20;
 
@@ -72,7 +79,7 @@ router.get('/courses', async (req: Request, res: Response): Promise<void> => {
     const typedCourses = courses as CourseWithLessons[];
     const lessonIds = typedCourses.flatMap((course) => course.lessons.map((lesson) => lesson.id));
 
-    const completedProgress = lessonIds.length
+    const completedProgress = lessonIds.length && userId
       ? await prisma.userLessonProgress.findMany({
           where: { userId, lessonId: { in: lessonIds }, completed: true },
           select: { lessonId: true },

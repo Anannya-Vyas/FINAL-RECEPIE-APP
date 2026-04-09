@@ -42,7 +42,7 @@ function sanitize(input: unknown): string {
 // No auth required — anyone can post
 
 router.post('/posts', requireMongo, async (req: Request, res: Response) => {
-  const userId = req.user?.userId || `anon_${Date.now()}`;
+  const userId = req.user?.userId || 'anonymous';
   const { caption, media, recipe_tags } = req.body;
 
   // Validate caption (Req 7.2)

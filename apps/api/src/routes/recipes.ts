@@ -108,7 +108,9 @@ function sanitizeSteps(steps: unknown[]): Record<string, unknown>[] {
 // Create recipe — no auth required, anyone can publish
 
 router.post('/', async (req: Request, res: Response) => {
-  const userId = req.user?.userId || `anon_${Date.now()}`;
+  // Use authenticated userId if available, otherwise use a fixed anonymous UUID
+  const ANON_USER_ID = '00000000-0000-0000-0000-000000000001';
+  const userId = req.user?.userId || ANON_USER_ID;
   const {
     title,
     region_id,
