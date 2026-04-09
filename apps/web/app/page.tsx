@@ -128,7 +128,7 @@ export default function LandingPage() {
 
           {/* Eyebrow */}
           <p className="text-[10px] font-bold uppercase tracking-[0.4em] mb-10" style={{ color: 'rgba(212,175,55,0.5)' }}>
-            Est. 2024 &nbsp;·&nbsp; 500+ Recipes &nbsp;·&nbsp; 30+ Cultures
+            Est. 2026 &nbsp;·&nbsp; 500+ Recipes &nbsp;·&nbsp; 30+ Cultures
           </p>
 
           {/* Main title */}
@@ -207,7 +207,7 @@ export default function LandingPage() {
                   GitHub
                 </a>
                 <span className="text-[10px] uppercase tracking-[0.2em]" style={{ color: 'rgba(255,255,255,0.15)' }}>
-                  © 2024 Global Culinary Compass
+                  © 2026 Global Culinary Compass
                 </span>
               </div>
             </div>
@@ -225,3 +225,4 @@ export default function LandingPage() {
     </div>
   );
 }
+
