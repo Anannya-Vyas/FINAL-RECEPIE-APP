@@ -48,7 +48,7 @@ const DEFAULT_EVENTS: Event[] = [
     description: 'Master the art of Korean Kimchi and Japanese Miso with artisan practitioners.',
     price: '₹450',
     meetLink: '',
-    image: 'https://images.unsplash.com/photo-1608500218890-c4f9d3a5b5e8?w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1583224964978-2257b8a1d0a8?w=800&q=80',
     featured: false,
   },
 ];
