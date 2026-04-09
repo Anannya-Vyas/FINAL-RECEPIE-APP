@@ -34,7 +34,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {/* TopAppBar */}
       <header className="fixed top-0 w-full z-50 bg-surface/90 backdrop-blur-2xl shadow-[0_40px_40px_rgba(28,28,26,0.06)] border-b border-outline/10">
         <div className="flex justify-between items-center px-6 py-4 max-w-screen-2xl mx-auto w-full">
-          <Link href="/" className="text-2xl font-black tracking-tighter text-on-surface font-headline bg-gradient-to-r from-primary to-tertiary bg-clip-text text-transparent">
+          <Link href="/" className="text-2xl font-black tracking-tighter text-on-surface font-headline bg-gradient-to-r from-primary to-tertiary bg-clip-text text-transparent flex items-center gap-2">
+            <img src="/logo.svg" alt="logo" className="w-8 h-8 rounded-lg flex-shrink-0" />
             Global Culinary Compass
           </Link>
           <nav className="hidden md:flex gap-8 items-center">

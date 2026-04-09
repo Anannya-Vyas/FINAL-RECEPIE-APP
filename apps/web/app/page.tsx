@@ -78,7 +78,7 @@ export default function LandingPage() {
       const tok = localStorage.getItem('cc_access_token');
       if (tok) { const p = JSON.parse(atob(tok.split('.')[1])); ok = Date.now() < p.exp * 1000; }
     } catch { /**/ }
-    router.push(ok ? '/discovery' : '/register');
+    router.push(ok ? '/discovery' : '/sign-in');
   }
 
   return (
@@ -106,12 +106,16 @@ export default function LandingPage() {
 
         {/* Header */}
         <header className="flex items-center justify-between px-8 md:px-16 py-6">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.3em] text-[rgba(212,175,55,0.6)] mb-0.5">Global Culinary Compass</p>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-white/25">by Anannya Vyas</p>
+          <div className="flex items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.svg" alt="Global Culinary Compass" className="w-10 h-10 rounded-xl" />
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-[rgba(212,175,55,0.6)] mb-0.5">Global Culinary Compass</p>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-white/25">by Anannya Vyas</p>
+            </div>
           </div>
           <div className="flex items-center gap-4">
-            <Link href="/login"
+            <Link href="/sign-in"
               className="text-white/40 hover:text-white text-xs font-bold uppercase tracking-[0.2em] transition-colors">
               Sign In
             </Link>
@@ -152,7 +156,7 @@ export default function LandingPage() {
               style={{ background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.5)', color: 'rgba(212,175,55,0.95)', boxShadow: '0 0 40px rgba(212,175,55,0.08)' }}>
               Enter the Archive
             </button>
-            <Link href="/login"
+            <Link href="/sign-in"
               className="text-xs font-bold uppercase tracking-[0.25em] transition-colors"
               style={{ color: 'rgba(255,255,255,0.3)' }}>
               Already a member? Sign in →
@@ -225,4 +229,5 @@ export default function LandingPage() {
     </div>
   );
 }
+
 
