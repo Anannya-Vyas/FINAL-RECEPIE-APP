@@ -9,7 +9,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider
+      appearance={{
+        variables: { colorPrimary: '#a03f28' },
+      }}
+    >
       <html lang="en">
         <body className="bg-background text-on-surface font-body antialiased">
           {children}
