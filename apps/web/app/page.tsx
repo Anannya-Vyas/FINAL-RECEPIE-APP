@@ -78,7 +78,7 @@ export default function LandingPage() {
       const tok = localStorage.getItem('cc_access_token');
       if (tok) { const p = JSON.parse(atob(tok.split('.')[1])); ok = Date.now() < p.exp * 1000; }
     } catch { /**/ }
-    router.push(ok ? '/discovery' : 'https://magical-bonefish-29.clerk.accounts.dev/sign-in?redirect_url=http%3A%2F%2Flocalhost%3A3000%2Fdiscovery');
+    router.push(ok ? '/discovery' : '/login');
   }
 
   return (
@@ -115,7 +115,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <Link href="https://magical-bonefish-29.clerk.accounts.dev/sign-in?redirect_url=http%3A%2F%2Flocalhost%3A3000%2Fdiscovery"
+            <Link href="/login"
               className="text-white/40 hover:text-white text-xs font-bold uppercase tracking-[0.2em] transition-colors">
               Sign In
             </Link>
@@ -156,7 +156,7 @@ export default function LandingPage() {
               style={{ background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.5)', color: 'rgba(212,175,55,0.95)', boxShadow: '0 0 40px rgba(212,175,55,0.08)' }}>
               Enter the Archive
             </button>
-            <Link href="https://magical-bonefish-29.clerk.accounts.dev/sign-in?redirect_url=http%3A%2F%2Flocalhost%3A3000%2Fdiscovery"
+            <Link href="/login"
               className="text-xs font-bold uppercase tracking-[0.25em] transition-colors"
               style={{ color: 'rgba(255,255,255,0.3)' }}>
               Already a member? Sign in →
@@ -229,6 +229,7 @@ export default function LandingPage() {
     </div>
   );
 }
+
 
 
 
