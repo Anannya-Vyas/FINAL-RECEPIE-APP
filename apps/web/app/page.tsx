@@ -78,7 +78,7 @@ export default function LandingPage() {
       const tok = localStorage.getItem('cc_access_token');
       if (tok) { const p = JSON.parse(atob(tok.split('.')[1])); ok = Date.now() < p.exp * 1000; }
     } catch { /**/ }
-    router.push(ok ? '/discovery' : '/login');
+    router.push(ok ? '/discovery' : '/sign-in');
   }
 
   return (
@@ -229,6 +229,7 @@ export default function LandingPage() {
     </div>
   );
 }
+
 
 
 
