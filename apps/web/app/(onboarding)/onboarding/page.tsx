@@ -52,7 +52,7 @@ export default function OnboardingPage() {
         cuisineInterests: cuisines,
         preferredLanguage: language,
       });
-      router.push('/');
+      router.push('/discovery');
     } catch {
       setError('Failed to save preferences. Please try again.');
     } finally {

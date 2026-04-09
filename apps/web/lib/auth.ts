@@ -8,11 +8,16 @@ export function getToken(): string | null {
 export function setToken(token: string): void {
   if (typeof window === 'undefined') return;
   localStorage.setItem(TOKEN_KEY, token);
+  // Also set as cookie so middleware can read it
+  const maxAge = 60 * 60 * 24 * 7; // 7 days
+  document.cookie = `${TOKEN_KEY}=${token}; path=/; max-age=${maxAge}; SameSite=Lax`;
 }
 
 export function clearToken(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(TOKEN_KEY);
+  // Clear cookie too
+  document.cookie = `${TOKEN_KEY}=; path=/; max-age=0`;
 }
 
 export function isTokenExpired(token: string): boolean {
