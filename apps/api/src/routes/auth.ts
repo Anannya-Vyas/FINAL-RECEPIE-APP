@@ -109,6 +109,29 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   );
 }
 
+// GitHub OAuth strategy
+if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+  const GitHubStrategy = require('passport-github2').Strategy;
+  passport.use(new GitHubStrategy(
+    {
+      clientID: process.env.GITHUB_CLIENT_ID,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+      callbackURL: `${process.env.API_BASE_URL || 'http://localhost:4000'}/api/auth/github/callback`,
+    },
+    async (accessToken: string, refreshToken: string, profile: { id: string; displayName: string; emails?: Array<{ value: string }> }, done: (err: unknown, user?: unknown) => void) => {
+      try {
+        const email = profile.emails?.[0]?.value;
+        if (!email) return done(new Error('No email from GitHub'));
+        let user = await prisma.user.findFirst({ where: { OR: [{ email }, { oauthProvider: 'github', oauthId: profile.id }] } });
+        if (!user) {
+          user = await prisma.user.create({ data: { email, oauthProvider: 'github', oauthId: profile.id, displayName: profile.displayName || email.split('@')[0], subscriptionStatus: 'trial', trialStartDate: new Date() } });
+        }
+        return done(null, user);
+      } catch (err) { return done(err); }
+    }
+  ));
+}
+
 // Apple OAuth strategy
 if (
   process.env.APPLE_CLIENT_ID &&
@@ -295,6 +318,29 @@ router.get('/google/callback', (req: Request, res: Response, next) => {
       // ignore malformed state
     }
 
+    const tokens = issueTokens(user.id, user.email);
+    const frontendBase = process.env.CORS_ORIGIN || 'http://localhost:3000';
+    const params = new URLSearchParams({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken, redirect: redirectUrl });
+    res.redirect(`${frontendBase}/auth/callback?${params.toString()}`);
+  })(req, res, next);
+});
+
+// ─── GET /api/auth/github ────────────────────────────────────────────────────
+
+router.get('/github', (req: Request, res, next) => {
+  const redirectUrl = (req.query.redirect as string) || '/discovery';
+  passport.authenticate('github', {
+    scope: ['user:email'],
+    state: Buffer.from(JSON.stringify({ redirectUrl })).toString('base64'),
+    session: false,
+  } as Record<string, unknown>)(req, res, next);
+});
+
+router.get('/github/callback', (req: Request, res: Response, next) => {
+  passport.authenticate('github', { session: false, failureRedirect: '/login?error=oauth_failed' }, (err: unknown, user: { id: string; email: string }) => {
+    if (err || !user) return res.redirect('/login?error=oauth_failed');
+    let redirectUrl = '/discovery';
+    try { const state = JSON.parse(Buffer.from((req.query.state as string) || '', 'base64').toString()); redirectUrl = state.redirectUrl || '/discovery'; } catch { /**/ }
     const tokens = issueTokens(user.id, user.email);
     const frontendBase = process.env.CORS_ORIGIN || 'http://localhost:3000';
     const params = new URLSearchParams({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken, redirect: redirectUrl });
