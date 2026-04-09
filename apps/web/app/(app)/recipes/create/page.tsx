@@ -93,6 +93,14 @@ export default function RecipeCreatePage() {
           .filter((s) => s.description.trim())
           .map((s, idx) => ({ order: idx + 1, text: s.description })),
       });
+      // Track challenge progress
+      try {
+        const progress = JSON.parse(localStorage.getItem('cc_challenge_progress') || '{}');
+        progress.recipesAdded = (progress.recipesAdded || 0) + 1;
+        progress.totalPoints = (progress.totalPoints || 0) + 100;
+        if (isFamilyRecipe) progress.familyRecipesAdded = (progress.familyRecipesAdded || 0) + 1;
+        localStorage.setItem('cc_challenge_progress', JSON.stringify(progress));
+      } catch { /* ignore */ }
       setSuccess(true);
     } catch (err: unknown) {
       const msg =

@@ -171,6 +171,13 @@ export default function FeedPage() {
       return id === postId ? { ...p, shares_count: p.shares_count + 1 } : p;
     }));
     api.post(`/api/feed/posts/${postId}/share`).catch(() => {});
+    // Track challenge progress
+    try {
+      const progress = JSON.parse(localStorage.getItem('cc_challenge_progress') || '{}');
+      progress.postsShared = (progress.postsShared || 0) + 1;
+      progress.totalPoints = (progress.totalPoints || 0) + 20;
+      localStorage.setItem('cc_challenge_progress', JSON.stringify(progress));
+    } catch { /* ignore */ }
   }
 
   return (

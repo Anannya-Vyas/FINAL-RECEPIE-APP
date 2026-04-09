@@ -135,6 +135,20 @@ export default function RecipeDetailPage() {
       const { data } = await api.post(`/api/recipes/${id}/ratings`, { value });
       setCurrentRating({ avg: data.average_rating || value, count: data.rating_count || 1 });
       setRatingSubmitted(true);
+      // Track challenge progress
+      try {
+        const progress = JSON.parse(localStorage.getItem('cc_challenge_progress') || '{}');
+        progress.ratingsGiven = (progress.ratingsGiven || 0) + 1;
+        progress.totalPoints = (progress.totalPoints || 0) + 10;
+        // Track region for Global Explorer challenge
+        if (recipe?.region?.name) {
+          const regions: string[] = progress.savedRegions || [];
+          if (!regions.includes(recipe.region.name)) {
+            progress.savedRegions = [...regions, recipe.region.name];
+          }
+        }
+        localStorage.setItem('cc_challenge_progress', JSON.stringify(progress));
+      } catch { /* ignore */ }
     } catch { /* ignore */ }
   }
 

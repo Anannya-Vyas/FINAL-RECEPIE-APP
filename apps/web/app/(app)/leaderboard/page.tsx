@@ -14,28 +14,93 @@ interface LeaderEntry {
   points: number;
 }
 
-const CHALLENGES = [
-  { id: 1, title: 'The Risotto Master', points: 500, description: 'Cook 3 different types of risotto this week.', progress: 0, icon: '🍚' },
-  { id: 2, title: 'Global Explorer', points: 1000, description: 'Try recipes from 5 different continents.', progress: 0, icon: '🌍' },
-  { id: 3, title: 'Early Bird', points: 300, description: 'Prepare a healthy breakfast 5 days in a row.', progress: 0, icon: '🌅' },
-  { id: 4, title: 'Community Star', points: 750, description: 'Share 2 recipes and get 50 likes.', progress: 0, icon: '⭐' },
-  { id: 5, title: 'Spice Adventurer', points: 400, description: 'Cook with 10 different spices this month.', progress: 0, icon: '🌶️' },
-  { id: 6, title: 'Heritage Keeper', points: 600, description: 'Add 3 family/grandmother recipes to the archive.', progress: 0, icon: '👵' },
-];
+interface ChallengeProgress {
+  recipesAdded: number;
+  ratingsGiven: number;
+  postsShared: number;
+  savedRegions: string[];
+  familyRecipesAdded: number;
+  totalPoints: number;
+}
+
+function loadProgress(): ChallengeProgress {
+  try {
+    return JSON.parse(localStorage.getItem('cc_challenge_progress') || '{}');
+  } catch { return {} as ChallengeProgress; }
+}
+
+function getChallenges(progress: ChallengeProgress) {
+  const r = progress.recipesAdded || 0;
+  const ratings = progress.ratingsGiven || 0;
+  const shares = progress.postsShared || 0;
+  const regions = (progress.savedRegions || []).length;
+  const family = progress.familyRecipesAdded || 0;
+
+  return [
+    {
+      id: 1, title: 'Recipe Creator', points: 500, icon: '🍳',
+      description: 'Add 3 recipes to the archive.',
+      current: Math.min(r, 3), target: 3,
+      progress: Math.min(100, Math.round((r / 3) * 100)),
+      done: r >= 3,
+    },
+    {
+      id: 2, title: 'Global Explorer', points: 1000, icon: '🌍',
+      description: 'Save recipes from 5 different regions.',
+      current: Math.min(regions, 5), target: 5,
+      progress: Math.min(100, Math.round((regions / 5) * 100)),
+      done: regions >= 5,
+    },
+    {
+      id: 3, title: 'Taste Tester', points: 300, icon: '⭐',
+      description: 'Rate 5 recipes.',
+      current: Math.min(ratings, 5), target: 5,
+      progress: Math.min(100, Math.round((ratings / 5) * 100)),
+      done: ratings >= 5,
+    },
+    {
+      id: 4, title: 'Community Star', points: 750, icon: '🌟',
+      description: 'Share 2 posts in the feed.',
+      current: Math.min(shares, 2), target: 2,
+      progress: Math.min(100, Math.round((shares / 2) * 100)),
+      done: shares >= 2,
+    },
+    {
+      id: 5, title: 'Spice Adventurer', points: 400, icon: '🌶️',
+      description: 'Rate 10 recipes from different cuisines.',
+      current: Math.min(ratings, 10), target: 10,
+      progress: Math.min(100, Math.round((ratings / 10) * 100)),
+      done: ratings >= 10,
+    },
+    {
+      id: 6, title: 'Heritage Keeper', points: 600, icon: '👵',
+      description: 'Add 3 family/grandmother recipes.',
+      current: Math.min(family, 3), target: 3,
+      progress: Math.min(100, Math.round((family / 3) * 100)),
+      done: family >= 3,
+    },
+  ];
+}
 
 export default function LeaderboardPage() {
   const [leaders, setLeaders] = useState<LeaderEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState<'recipes' | 'ratings'>('recipes');
+  const [challengeProgress, setChallengeProgress] = useState<ChallengeProgress>({} as ChallengeProgress);
+  const [claimedChallenges, setClaimedChallenges] = useState<number[]>([]);
 
   useEffect(() => {
-    // Fetch real leaderboard data from the API
+    // Load challenge progress from localStorage
+    const progress = loadProgress();
+    setChallengeProgress(progress);
+    const claimed = JSON.parse(localStorage.getItem('cc_claimed_challenges') || '[]');
+    setClaimedChallenges(claimed);
+
+    // Fetch real leaderboard data
     api.get('/api/profile/leaderboard').then(({ data }) => {
       setLeaders(data.leaders || []);
     }).catch(() => {
-      // Fallback: fetch top recipe contributors
       api.get('/api/recipes', { params: { limit: 20 } }).then(({ data }) => {
-        // Build leaderboard from recipe authors
         const authorMap = new Map<string, { count: number; name: string }>();
         (data.recipes || []).forEach((r: { authorId?: string; author_id?: string }) => {
           const id = r.authorId || r.author_id || 'unknown';
@@ -46,8 +111,7 @@ export default function LeaderboardPage() {
           .sort((a, b) => b[1].count - a[1].count)
           .slice(0, 10)
           .map(([userId, data], i) => ({
-            rank: i + 1,
-            userId,
+            rank: i + 1, userId,
             displayName: data.name,
             recipeCount: data.count,
             ratingCount: 0,
@@ -57,6 +121,20 @@ export default function LeaderboardPage() {
       }).catch(() => {});
     }).finally(() => setLoading(false));
   }, []);
+
+  function claimChallenge(id: number, points: number) {
+    const updated = [...claimedChallenges, id];
+    setClaimedChallenges(updated);
+    localStorage.setItem('cc_claimed_challenges', JSON.stringify(updated));
+    // Add points to total
+    const progress = loadProgress();
+    progress.totalPoints = (progress.totalPoints || 0) + points;
+    localStorage.setItem('cc_challenge_progress', JSON.stringify(progress));
+    setChallengeProgress({ ...progress });
+  }
+
+  const challenges = getChallenges(challengeProgress);
+  const totalPoints = challengeProgress.totalPoints || 0;
 
   const sorted = [...leaders].sort((a, b) => category === 'recipes' ? b.recipeCount - a.recipeCount : b.ratingCount - a.ratingCount);
 
@@ -155,29 +233,49 @@ export default function LeaderboardPage() {
         </div>
 
         <div className="lg:col-span-5 space-y-6">
-          <div>
-            <h2 className="font-headline text-2xl font-extrabold tracking-tight text-on-surface mb-2">Culinary Challenges</h2>
-            <p className="text-on-surface-variant text-sm">Complete these to earn points. Challenges reset weekly.</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-headline text-2xl font-extrabold tracking-tight text-on-surface mb-1">Culinary Challenges</h2>
+              <p className="text-on-surface-variant text-sm">Complete these to earn points.</p>
+            </div>
+            {totalPoints > 0 && (
+              <div className="text-right">
+                <p className="font-headline font-bold text-2xl text-primary">{totalPoints.toLocaleString()}</p>
+                <p className="text-[10px] text-on-surface-variant font-label uppercase tracking-widest">Your Points</p>
+              </div>
+            )}
           </div>
           <div className="space-y-4">
-            {CHALLENGES.map(challenge => (
-              <div key={challenge.id} className="p-5 rounded-2xl border border-outline/10 bg-surface-container-lowest">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{challenge.icon}</span>
-                    <div>
-                      <h3 className="font-headline font-bold text-on-surface text-sm">{challenge.title}</h3>
-                      <p className="text-xs text-on-surface-variant mt-0.5">{challenge.description}</p>
+            {challenges.map(challenge => {
+              const claimed = claimedChallenges.includes(challenge.id);
+              return (
+                <div key={challenge.id} className={`p-5 rounded-2xl border bg-surface-container-lowest transition-all ${challenge.done && !claimed ? 'border-primary/40 bg-primary/5' : 'border-outline/10'}`}>
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{challenge.icon}</span>
+                      <div>
+                        <h3 className="font-headline font-bold text-on-surface text-sm">{challenge.title}</h3>
+                        <p className="text-xs text-on-surface-variant mt-0.5">{challenge.description}</p>
+                      </div>
                     </div>
+                    <span className="font-headline font-bold text-primary text-sm flex-shrink-0 ml-2">+{challenge.points} pts</span>
                   </div>
-                  <span className="font-headline font-bold text-primary text-sm flex-shrink-0 ml-2">+{challenge.points} pts</span>
+                  <div className="h-2 w-full bg-surface-container rounded-full overflow-hidden mb-2">
+                    <div className={`h-full rounded-full transition-all duration-500 ${claimed ? 'bg-secondary' : 'bg-gradient-to-r from-primary to-secondary'}`} style={{ width: `${claimed ? 100 : challenge.progress}%` }} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] text-on-surface-variant font-label">
+                      {claimed ? '✓ Completed & claimed' : challenge.done ? '✓ Done! Claim your points' : `${challenge.current}/${challenge.target} — ${challenge.progress}%`}
+                    </p>
+                    {challenge.done && !claimed && (
+                      <button onClick={() => claimChallenge(challenge.id, challenge.points)} className="px-3 py-1 bg-primary text-on-primary rounded-full font-label font-bold text-[10px] uppercase tracking-widest hover:opacity-90 transition-all active:scale-95">
+                        Claim +{challenge.points}
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div className="h-2 w-full bg-surface-container rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-primary to-secondary rounded-full" style={{ width: `${challenge.progress}%` }} />
-                </div>
-                <p className="text-[10px] text-on-surface-variant mt-1 font-label">Not started</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="bg-surface-container rounded-2xl p-6">
@@ -200,6 +298,7 @@ export default function LeaderboardPage() {
                 </div>
               ))}
             </div>
+            <p className="text-xs text-on-surface-variant mt-4 italic">Points are tracked locally. Add recipes, rate dishes, and share posts to progress your challenges.</p>
           </div>
         </div>
       </div>

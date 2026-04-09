@@ -82,9 +82,8 @@ const GRANDMA_STORIES = [
 ];
 
 export default function CulturePage() {
-  const [activeTab, setActiveTab] = useState<'calendar' | 'stories' | 'grandma'>('calendar');
+  const [activeTab, setActiveTab] = useState<'calendar' | 'stories'>('calendar');
   const [currentMonth] = useState(new Date().toLocaleString('default', { month: 'long' }));
-  const [selectedStory, setSelectedStory] = useState(0);
 
   return (
     <div className="max-w-screen-xl mx-auto">
@@ -95,7 +94,7 @@ export default function CulturePage() {
       </section>
 
       <div className="flex gap-2 mb-8 bg-surface-container rounded-xl p-1.5 w-fit overflow-x-auto no-scrollbar">
-        {[{ id: 'calendar', label: '📅 Food Ritual Calendar' }, { id: 'stories', label: '📖 Dish Origin Stories' }, { id: 'grandma', label: '👵 Grandma Voice Mode' }].map(tab => (
+        {[{ id: 'calendar', label: '📅 Food Ritual Calendar' }, { id: 'stories', label: '📖 Dish Origin Stories' }].map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id as typeof activeTab)} className={`px-5 py-2.5 rounded-lg font-label font-bold text-sm whitespace-nowrap transition-all ${activeTab === tab.id ? 'bg-surface-container-lowest text-primary shadow-sm' : 'text-on-surface-variant hover:text-on-surface'}`}>
             {tab.label}
           </button>
